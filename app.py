@@ -1,1057 +1,1079 @@
-# ==============================================================================
+# =============================================================================
+# Project Relay - Web版 統合報告パワーポイント自動生成アプリ
+# 向平氏専用 業務効率化ツール（Streamlit）
+# =============================================================================
 #
-#   Project Relay v2  ─  統合報告レポート自動生成システム
-#   向平様専用 業務効率化ツール（Streamlit）
-#   セキュリティゲート統合版 / UX 極限改善版
+# 【インストール】
+#   pip install streamlit python-pptx openpyxl pdfplumber
 #
-# ==============================================================================
+# 【起動】
+#   streamlit run app.py
 #
-#  【インストール】
-#    pip install streamlit python-pptx openpyxl pdfplumber
-#
-#  【起動】
-#    streamlit run app.py
-#
-#  【認証パスワード】
-#    relay2026
-#
-#  【動作フロー】
-#    起動
-#     │
-#     ├─ CSS 注入（認証画面にもネイビー・ゴールドを適用）
-#     │
-#     ├─ render_auth_gate()
-#     │    ├─ 未認証 → 認証画面を表示して False 返却 → 終了
-#     │    └─ 認証済 → True 返却
-#     │
-#     └─ main()  ← 認証済みのときのみ発火
-#          ├─ render_sidebar()           過去レポート一覧
-#          ├─ render_hero()              ヒーローヘッダー
-#          ├─ ファイルアップロード       st.file_uploader
-#          ├─ process_files()            テキスト抽出
-#          ├─ classify()                 キーワード分類
-#          ├─ make_pptx()               PPTX 生成
-#          └─ render_success_banner…()  完了バナー＋DL ボタン
-#
-# ==============================================================================
+# 【認証パスワード】
+#   relay2026
+# =============================================================================
 
 import io
 import time
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
 
-# ── サードパーティ（pip がなくてもクラッシュしない設計） ──────────────────────
+
+# =============================================================================
+# 1. 認証ゲートロジック
+# =============================================================================
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+
+def check_password():
+    if st.session_state.get("pw_entry") == "relay2026":
+        st.session_state.auth = True
+    else:
+        st.error("パスワードが正しくありません")
+
+# 認証されていない場合は、ここで処理を止める
+if not st.session_state.auth:
+    st.set_page_config(page_title="Project Relay | Security", page_icon="⬡")
+    st.markdown("<style>body{background-color:#0D1B3E;color:white;}</style>", unsafe_allow_html=True)
+    st.title("⬡ Project Relay - Security Gate")
+    st.text_input("向平様専用パスワードを入力してください", type="password", key="pw_entry", on_change=check_password)
+    st.info("認証が完了するまで、すべての機能はロックされています。")
+    st.stop()
+
+
+# =============================================================================
+# 2. サードパーティライブラリ（未インストール時もクラッシュしない設計）
+# =============================================================================
 try:
-    from pptx import Presentation
-    from pptx.util import Inches, Pt
-    from pptx.dml.color import RGBColor
-    from pptx.enum.text import PP_ALIGN
-    PPTX_AVAILABLE = True
+    from pptx import Presentation
+    from pptx.util import Inches, Pt
+    from pptx.dml.color import RGBColor
+    from pptx.enum.text import PP_ALIGN
+    from pptx.enum.shapes import MSO_SHAPE
+    PPTX_AVAILABLE = True
 except ImportError:
-    PPTX_AVAILABLE = False
+    PPTX_AVAILABLE = False
 
 try:
-    import openpyxl
-    OPENPYXL_AVAILABLE = True
+    import openpyxl
+    OPENPYXL_AVAILABLE = True
 except ImportError:
-    OPENPYXL_AVAILABLE = False
+    OPENPYXL_AVAILABLE = False
 
 try:
-    import pdfplumber
-    PDF_AVAILABLE = True
+    import pdfplumber
+    PDF_AVAILABLE = True
 except ImportError:
-    PDF_AVAILABLE = False
+    PDF_AVAILABLE = False
 
 
-# ==============================================================================
-# ページ設定  ─  Streamlit への最初の呼び出しでなければならない
-# ==============================================================================
+# =============================================================================
+# 3. Streamlit ページ設定
+# =============================================================================
 st.set_page_config(
-    page_title="Project Relay | 統合レポート生成",
-    page_icon="⬡",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    page_title="Project Relay | 統合報告レポート生成",
+    page_icon="⬡",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 
-# ==============================================================================
-# 定数
-# ==============================================================================
-
-HISTORY_DIR = Path("./history")
-HISTORY_DIR.mkdir(exist_ok=True)
-
-# ── 認証パスワード（変更する場合はここだけ書き換えてください） ──
-CORRECT_PW = "relay2026"
-
-# ── キーワード分類辞書 ────────────────────────────────────────────────────────
-CATEGORY_KEYWORDS: dict[str, list[str]] = {
-    "今月の成果": [
-        "成果", "達成", "完了", "リリース", "ローンチ", "公開", "獲得", "受注",
-        "契約", "成功", "実施", "完成", "提供", "展開", "運用開始",
-    ],
-    "数値指標": [
-        "売上", "収益", "利益", "コスト", "費用", "予算", "KPI", "目標", "達成率",
-        "前月比", "前年比", "増加", "減少", "%", "万円", "千件", "PV", "CVR",
-        "ROI", "CPA", "CPC", "クリック率", "転換率", "件数", "数",
-    ],
-    "発生した課題": [
-        "課題", "問題", "障害", "遅延", "バグ", "エラー", "リスク", "懸念",
-        "未達", "不足", "改善が必要", "検討が必要", "対応中", "調査中", "ペンディング",
-    ],
-    "次月の予定": [
-        "予定", "計画", "スケジュール", "来月", "次月", "今後", "方針", "施策",
-        "実施予定", "リリース予定", "検討予定", "対応予定", "目標設定",
-    ],
-}
-
-CATEGORY_ICONS: dict[str, str] = {
-    "今月の成果":       "🏆",
-    "数値指標":         "📊",
-    "発生した課題":     "⚠️",
-    "次月の予定":       "📅",
-    "その他・参考情報": "📎",
-}
-
-# ── PPTX スライドカラー ────────────────────────────────────────────────────────
-if PPTX_AVAILABLE:
-    C_DARK   = RGBColor(0x1E, 0x27, 0x61)   # ネイビー  （タイトル背景）
-    C_ACCENT = RGBColor(0xCA, 0xDC, 0xFC)   # アイスブルー（アクセント）
-    C_WHITE  = RGBColor(0xFF, 0xFF, 0xFF)   # 白
-    C_LIGHT  = RGBColor(0xF4, 0xF6, 0xFF)   # 薄ブルー  （コンテンツ背景）
-    C_BODY   = RGBColor(0x1E, 0x27, 0x61)   # 本文ネイビー
-    C_CITE   = RGBColor(0x99, 0x99, 0xAA)   # 出典グレー
-
-
-# ==============================================================================
-# グローバル CSS
-#
-#  認証画面・メイン UI 両方のスタイルを一ファイルに集約しています。
-#  エントリーポイント冒頭で st.markdown(CSS) を一度だけ呼びます。
-#  main() 内での再注入は「単体テスト時の保険」であり、Streamlit は重複を無視します。
-# ==============================================================================
-CSS = """
+# =============================================================================
+# 4. カラーパレット & グローバルCSS（高級ビジネスデザイン）
+# =============================================================================
+GLOBAL_CSS = """
 <style>
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
 
-/* ============================================================
-   Google Fonts
-   ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
-
-
-/* ============================================================
-   CSS 変数（カラーパレット）
-   ============================================================ */
+/* ── CSS Variables ── */
 :root {
-    --navy:      #080F24;
-    --navy-2:    #0D1B3E;
-    --navy-3:    #1A2848;
-    --gold:      #C9A84C;
-    --gold-lt:   #E8C97A;
-    --off-white: #EEF1F8;
-    --muted:     #6B7A9F;
-    --border:    rgba(201, 168, 76, 0.20);
-    --card:      #111D38;
-    --success:   #22c55e;
-    --white:     #FFFFFF;
+    --navy:        #0D1B3E;
+    --navy-mid:    #1E2D5A;
+    --navy-light:  #2A3F7E;
+    --gold:        #D60036;
+    --gold-light:  #FF3B6B;
+    --ice:         #CADCFC;
+    --off-white:   #F0F2F8;
+    --muted:       #7A8AB0;
+    --surface:     #111827;
+    --card:        #1A2540;
+    --border:      rgba(214,0,54,0.25);
 }
 
-
-/* ============================================================
-   Streamlit リセット & ベース
-   ============================================================ */
-html, body,
-[data-testid="stAppViewContainer"],
-[data-testid="stMain"] {
-    background-color: var(--navy) !important;
-    color:            var(--off-white) !important;
-    font-family:      'Noto Sans JP', sans-serif;
+/* ── Base Reset ── */
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: var(--navy) !important;
+    color: var(--off-white) !important;
+    font-family: 'Noto Sans JP', sans-serif;
 }
 
-[data-testid="stHeader"]        { background: transparent !important; }
+[data-testid="stHeader"]  { background: transparent !important; }
+[data-testid="stSidebar"] { background: var(--surface) !important; }
 [data-testid="stVerticalBlock"] { gap: 0 !important; }
-.block-container                { padding: 0 !important; max-width: 100% !important; }
-.appview-container .main .block-container { padding-top: 0 !important; }
-
-
-/* ============================================================
-   サイドバー（メイン UI 用・認証後に表示）
-   ============================================================ */
-[data-testid="stSidebar"] {
-    background:   #04091A !important;
-    border-right: 1px solid var(--border) !important;
-}
-[data-testid="stSidebarContent"] { padding: 0 !important; }
-
-
-/* ============================================================
-   ★ 認証ゲート専用スタイル
-      クラス名を auth- でスコープ管理し、メイン UI と完全に分離します。
-   ============================================================ */
-
-/* 認証画面中はサイドバーとトグルボタンを完全封鎖 */
-.auth-sidebar-kill [data-testid="stSidebar"],
-.auth-sidebar-kill [data-testid="collapsedControl"] {
-    display:    none   !important;
-    visibility: hidden !important;
-    width:      0      !important;
-    min-width:  0      !important;
+.block-container {
+    padding: 0 !important;
+    max-width: 100% !important;
 }
 
-/* 全画面センタリングのステージ */
-.auth-stage {
-    min-height:      100vh;
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    padding:         40px 20px;
-    background:
-        radial-gradient(ellipse at 65% 25%, rgba(201,168,76,0.065) 0%, transparent 60%),
-        linear-gradient(160deg, #03070F 0%, #080F24 55%, #0A1530 100%);
-}
-
-/* 認証カード本体 */
-.auth-card {
-    width:         100%;
-    max-width:     400px;
-    background:    var(--card);
-    border:        1px solid var(--border);
-    border-radius: 8px;
-    padding:       52px 44px 46px;
-    position:      relative;
-    overflow:      hidden;
-    box-shadow:
-        0 32px 80px rgba(0, 0, 0, 0.65),
-        0  0   0   1px rgba(201, 168, 76, 0.07),
-        inset 0 1px 0   rgba(201, 168, 76, 0.20);
-    animation: authCardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* カード上辺のゴールドグラデーションライン */
-.auth-card::before {
-    content:    '';
-    position:   absolute;
-    top: 0; left: 0; right: 0;
-    height:     1px;
-    background: linear-gradient(90deg, transparent 0%, var(--gold) 50%, transparent 100%);
-}
-
-/* カード右上のアンビエント光 */
-.auth-card::after {
-    content:       '';
-    position:      absolute;
-    top: -110px; right: -110px;
-    width:         280px;
-    height:        280px;
-    border-radius: 50%;
-    background:    radial-gradient(circle, rgba(201,168,76,0.058) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-@keyframes authCardIn {
-    from { opacity: 0; transform: translateY(28px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-/* ── ブランドロゴ行 ── */
-.auth-logo {
-    font-family:     'Cormorant Garamond', serif;
-    font-size:       10.5px;
-    font-weight:     300;
-    letter-spacing:  0.50em;
-    text-transform:  uppercase;
-    color:           var(--gold);
-    text-align:      center;
-    margin-bottom:   30px;
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    gap:             12px;
-}
-.auth-logo::before,
-.auth-logo::after {
-    content:    '';
-    display:    inline-block;
-    width:      22px;
-    height:     1px;
-    background: linear-gradient(90deg, transparent, var(--gold));
-}
-.auth-logo::after { transform: scaleX(-1); }
-
-/* ── カードタイトル ── */
-.auth-title {
-    font-family:   'Noto Serif JP', serif;
-    font-size:     24px;
-    font-weight:   600;
-    color:         var(--white);
-    text-align:    center;
-    line-height:   1.3;
-    margin-bottom: 8px;
-}
-
-/* ── カードサブテキスト ── */
-.auth-sub {
-    font-size:     12px;
-    color:         var(--muted);
-    text-align:    center;
-    letter-spacing:0.04em;
-    line-height:   1.88;
-    margin-bottom: 36px;
-}
-
-/* ── 入力欄のカスタムラベル ── */
-.auth-label {
-    display:        block;
-    font-family:    'Cormorant Garamond', serif;
-    font-size:      9.5px;
-    letter-spacing: 0.42em;
-    text-transform: uppercase;
-    color:          var(--gold);
-    margin-bottom:  8px;
-}
-
-/* ── text_input をゴールドテーマに上書き ── */
-[data-testid="stTextInput"] input {
-    background:      #07101E                          !important;
-    border:          1px solid rgba(201,168,76,0.32)  !important;
-    border-radius:   3px                              !important;
-    color:           var(--off-white)                 !important;
-    font-family:     'Noto Sans JP', sans-serif       !important;
-    font-size:       13.5px                           !important;
-    letter-spacing:  0.05em                           !important;
-    padding:         12px 16px                        !important;
-    caret-color:     var(--gold)                      !important;
-    transition:      border-color 0.25s, box-shadow 0.25s !important;
-}
-[data-testid="stTextInput"] input:focus {
-    border-color:    rgba(201,168,76,0.80)            !important;
-    box-shadow:      0 0 0 3px rgba(201,168,76,0.11)  !important;
-    outline:         none                             !important;
-}
-[data-testid="stTextInput"] input::placeholder {
-    color:           rgba(107,122,159,0.72)           !important;
-    font-size:       12.5px                           !important;
-}
-/* Streamlit 自動生成ラベルは非表示（.auth-label を使うため） */
-[data-testid="stTextInput"] label { display: none !important; }
-
-/* ── 認証ボタン（.auth-wrap 内のボタンにのみ適用） ── */
-.auth-wrap .stButton > button {
-    background:     linear-gradient(135deg, #B58A28 0%, #E8C97A 50%, #B58A28 100%) !important;
-    color:          #040C18                           !important;
-    font-family:    'Noto Sans JP', sans-serif        !important;
-    font-weight:    700                               !important;
-    font-size:      13px                              !important;
-    letter-spacing: 0.13em                            !important;
-    border:         none                              !important;
-    border-radius:  3px                               !important;
-    padding:        13px 28px                         !important;
-    width:          100%                              !important;
-    box-shadow:     0 0 26px rgba(201,168,76,0.40),
-                    0 2px 14px rgba(0,0,0,0.42)       !important;
-    transition:     all 0.25s ease                    !important;
-    margin-top:     6px                               !important;
-}
-.auth-wrap .stButton > button:hover {
-    box-shadow:  0 0 42px rgba(201,168,76,0.68),
-                 0 4px 18px rgba(0,0,0,0.52)          !important;
-    transform:   translateY(-1px)                     !important;
-}
-
-/* ── エラーメッセージ（shake アニメーション付き） ── */
-.auth-error {
-    background:     rgba(239, 68, 68, 0.09);
-    border:         1px solid rgba(239, 68, 68, 0.30);
-    border-radius:  3px;
-    padding:        10px 14px;
-    font-size:      12px;
-    color:          #fca5a5;
-    letter-spacing: 0.04em;
-    text-align:     center;
-    margin-top:     14px;
-    animation:      authShake 0.38s ease;
-}
-@keyframes authShake {
-    0%, 100% { transform: translateX(0);    }
-    20%,  60% { transform: translateX(-6px); }
-    40%,  80% { transform: translateX( 6px); }
-}
-
-/* ── カード内フッター注釈 ── */
-.auth-footer {
-    font-size:      9.5px;
-    color:          rgba(107,122,159, 0.44);
-    text-align:     center;
-    margin-top:     30px;
-    letter-spacing: 0.15em;
-}
-
-
-/* ============================================================
-   ★ メイン UI スタイル（既存・認証後に表示）
-   ============================================================ */
-
-/* ── ヒーローヘッダー ── */
+/* ── Hero Header ── */
 .hero {
-    background:    linear-gradient(140deg, #04091A 0%, #0D1B3E 55%, #162448 100%);
-    border-bottom: 1px solid var(--border);
-    padding:       48px 72px 40px;
-    position:      relative;
-    overflow:      hidden;
+    background: linear-gradient(135deg, #060D20 0%, #0D1B3E 50%, #1A2D5A 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 56px 80px 48px;
+    position: relative;
+    overflow: hidden;
 }
 .hero::before {
-    content:       '';
-    position:      absolute;
-    top: -80px; right: -80px;
-    width:         380px;
-    height:        380px;
-    border-radius: 50%;
-    background:    radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 68%);
-    pointer-events: none;
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(214,0,54,0.08) 0%, transparent 70%);
+    pointer-events: none;
 }
 .hero::after {
-    content:    '';
-    position:   absolute;
-    bottom: 0; left: 0; right: 0;
-    height:     1px;
-    background: linear-gradient(90deg, transparent 0%, var(--gold) 50%, transparent 100%);
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 .hero-eyebrow {
-    font-family:    'Cormorant Garamond', serif;
-    font-size:      12px;
-    font-weight:    300;
-    letter-spacing: 0.38em;
-    color:          var(--gold);
-    text-transform: uppercase;
-    margin-bottom:  14px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 0.35em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 16px;
 }
 .hero-title {
-    font-family:   'Noto Serif JP', serif;
-    font-size:     clamp(28px, 3.5vw, 46px);
-    font-weight:   600;
-    color:         var(--white);
-    line-height:   1.2;
-    margin-bottom: 10px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 600;
+    color: #FFFFFF;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
 }
 .hero-title span {
-    color:       var(--gold-lt);
-    font-weight: 300;
-    font-style:  italic;
+    color: var(--gold-light);
+    font-weight: 300;
+    font-style: italic;
 }
-.hero-sub {
-    font-size:      13px;
-    font-weight:    300;
-    color:          var(--muted);
-    letter-spacing: 0.04em;
-    line-height:    1.9;
-}
-
-/* ── メインコンテンツ ラッパー ── */
-.main-wrap {
-    padding:   36px 72px;
-    max-width: 1000px;
-    margin:    0 auto;
+.hero-subtitle {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    line-height: 1.8;
 }
 
-/* ── セクションラベル ── */
-.sec-label {
-    font-family:    'Cormorant Garamond', serif;
-    font-size:      10.5px;
-    letter-spacing: 0.42em;
-    text-transform: uppercase;
-    color:          var(--gold);
-    margin-bottom:  18px;
-    display:        flex;
-    align-items:    center;
-    gap:            10px;
-}
-.sec-label::after {
-    content:    '';
-    flex:       1;
-    height:     1px;
-    background: var(--border);
+/* ── Main Content Area ── */
+.main-content {
+    padding: 48px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
-/* ── フォーマットバッジ ── */
-.badges {
-    display:   flex;
-    gap:       8px;
-    flex-wrap: wrap;
-    margin:    10px 0 20px;
+/* ── Section Label ── */
+.section-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
-.badge {
-    background:     rgba(201,168,76,0.07);
-    border:         1px solid rgba(201,168,76,0.28);
-    border-radius:  2px;
-    padding:        4px 11px;
-    font-size:      10.5px;
-    letter-spacing: 0.13em;
-    color:          var(--gold-lt);
-    font-family:    'Courier New', monospace;
-    text-transform: uppercase;
+.section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
 }
 
-/* ── ファイルアップローダー ── */
+/* ── File Upload Zone ── */
 [data-testid="stFileUploader"] {
-    background:    var(--card)              !important;
-    border:        1px solid var(--border)  !important;
-    border-radius: 4px                      !important;
-    transition:    border-color 0.3s;
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 4px !important;
+    padding: 12px !important;
+    transition: border-color 0.3s ease;
 }
 [data-testid="stFileUploader"]:hover {
-    border-color: rgba(201,168,76,0.52)     !important;
+    border-color: rgba(214,0,54,0.55) !important;
 }
 [data-testid="stFileUploaderDropzoneInstructions"] {
-    color: var(--muted)                     !important;
+    color: var(--muted) !important;
 }
+
+/* ── File Chip (uploaded file tags) ── */
 [data-testid="stFileUploaderFile"] {
-    background:    rgba(201,168,76,0.07)    !important;
-    border:        1px solid var(--border)  !important;
-    border-radius: 2px                      !important;
-    color:         var(--off-white)         !important;
+    background: rgba(255,255,255,0.15) !important;
+    border: 1.5px solid var(--gold) !important;
+    border-radius: 4px !important;
+    color: #FFFFFF !important;
+    box-shadow:
+        0 0 0 1px rgba(214,0,54,0.35),
+        0 2px 12px rgba(214,0,54,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.12) !important;
+    margin-bottom: 8px !important;
+    padding: 8px 12px !important;
 }
 
-/* ── 生成ボタン（透明・ゴールドボーダー） ── */
-.stButton > button {
-    background:     transparent              !important;
-    color:          var(--gold)              !important;
-    font-family:    'Noto Sans JP', sans-serif !important;
-    font-size:      13.5px                   !important;
-    font-weight:    500                      !important;
-    letter-spacing: 0.10em                   !important;
-    border:         1px solid var(--gold)    !important;
-    border-radius:  2px                      !important;
-    padding:        12px 32px               !important;
-    width:          100%                     !important;
-    transition:     all 0.25s ease           !important;
-}
-.stButton > button:hover {
-    background: rgba(201,168,76,0.10)        !important;
-    box-shadow: 0 0 22px rgba(201,168,76,0.22) !important;
+/* ── File name — extreme weight, blazing white glow ── */
+[data-testid="stFileUploaderFileName"] {
+    color: #FFFFFF !important;
+    font-weight: 800 !important;
+    font-size: 13.5px !important;
+    letter-spacing: 0.025em !important;
+    text-shadow:
+        0 0 10px rgba(255,255,255,0.80),
+        0 0 20px rgba(214,0,54,0.40),
+        0 0 40px rgba(214,0,54,0.20) !important;
 }
 
-/* ── プログレスバー ── */
-.stProgress > div {
-    background:    rgba(201,168,76,0.10)     !important;
-    border-radius: 2px                       !important;
-    height:        3px                       !important;
-}
-.stProgress > div > div {
-    background:    linear-gradient(90deg, var(--gold), var(--gold-lt)) !important;
-    border-radius: 2px                       !important;
+/* ── File size / metadata — ice blue ── */
+[data-testid="stFileUploaderFile"] small,
+[data-testid="stFileUploaderFile"] [class*="fileSize"],
+[data-testid="stFileUploaderFile"] span:not([data-testid="stFileUploaderFileName"]) {
+    color: var(--ice) !important;
+    font-size: 11px !important;
+    opacity: 0.90 !important;
 }
 
-/* ── 成功バナー ── */
-.success-banner {
-    background:    linear-gradient(135deg, #071507 0%, #0A2010 100%);
-    border:        1.5px solid var(--success);
-    border-radius: 6px;
-    padding:       26px 36px;
-    display:       flex;
-    align-items:   center;
-    gap:           24px;
-    margin-bottom: 24px;
-    box-shadow:    0 0 42px rgba(34, 197, 94, 0.14);
-    animation:     successPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-@keyframes successPop {
-    from { opacity: 0; transform: scale(0.97) translateY(-8px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0);    }
-}
-.success-left {
-    display:     flex;
-    align-items: center;
-    gap:         16px;
-}
-.success-check {
-    width:           46px;
-    height:          46px;
-    border-radius:   50%;
-    background:      rgba(34, 197, 94, 0.14);
-    border:          1.5px solid var(--success);
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    font-size:       20px;
-    flex-shrink:     0;
-}
-.success-title {
-    font-family:   'Noto Serif JP', serif;
-    font-size:     19px;
-    font-weight:   600;
-    color:         var(--white);
-    margin-bottom: 4px;
-}
-.success-meta {
-    font-size:      11.5px;
-    color:          #86efac;
-    letter-spacing: 0.04em;
+/* ── File type icon — red glow ── */
+[data-testid="stFileUploaderFile"] svg {
+    fill: var(--gold-light) !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 6px rgba(214,0,54,0.70)) !important;
 }
 
-/* ── ダウンロードボタン（ゴールド・パルスグロー） ── */
-[data-testid="stDownloadButton"] > button {
-    background:      linear-gradient(135deg, #C9A84C 0%, #E8C97A 50%, #C9A84C 100%) !important;
-    background-size: 200%                      !important;
-    color:           #04101C                   !important;
-    font-family:     'Noto Sans JP', sans-serif !important;
-    font-weight:     700                       !important;
-    font-size:       15px                      !important;
-    letter-spacing:  0.08em                    !important;
-    border:          none                      !important;
-    border-radius:   3px                       !important;
-    padding:         16px 52px                 !important;
-    width:           100%                      !important;
-    box-shadow:      0 0 32px rgba(201,168,76,0.62),
-                     0 4px 18px rgba(0,0,0,0.46)  !important;
-    transition:      all 0.30s ease            !important;
-    animation:       dlPulse 2.6s ease-in-out infinite !important;
+/* ── Delete (×) button — gold-light, scaled up ── */
+[data-testid="stFileUploaderFile"] button,
+[data-testid="stFileUploaderDeleteBtn"] {
+    color: var(--gold-light) !important;
+    opacity: 1 !important;
+    transform: scale(1.2) !important;
+    transition: transform 0.15s, filter 0.15s !important;
 }
-[data-testid="stDownloadButton"] > button:hover {
-    box-shadow:           0 0 54px rgba(201,168,76,0.88),
-                          0 8px 28px rgba(0,0,0,0.52)  !important;
-    transform:            translateY(-2px)              !important;
-    animation-play-state: paused                        !important;
-}
-@keyframes dlPulse {
-    0%, 100% { box-shadow: 0 0 32px rgba(201,168,76,0.62), 0 4px 18px rgba(0,0,0,0.46); }
-    50%      { box-shadow: 0 0 54px rgba(201,168,76,0.88), 0 4px 18px rgba(0,0,0,0.46); }
+[data-testid="stFileUploaderFile"] button:hover,
+[data-testid="stFileUploaderDeleteBtn"]:hover {
+    filter: drop-shadow(0 0 6px rgba(255,59,107,0.90)) !important;
+    transform: scale(1.35) !important;
 }
 
-/* ── 統計カード（3列） ── */
+/* ── Stat Cards ── */
 .stat-row {
-    display:               grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap:                   14px;
-    margin:                18px 0 26px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 28px 0;
 }
 .stat-card {
-    background:    var(--card);
-    border:        1px solid var(--border);
-    border-radius: 4px;
-    padding:       22px 26px;
-    position:      relative;
-    overflow:      hidden;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
 }
 .stat-card::before {
-    content:    '';
-    position:   absolute;
-    top: 0; left: 0;
-    width:      3px;
-    height:     100%;
-    background: linear-gradient(180deg, var(--gold), transparent);
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, var(--gold), transparent);
 }
-.stat-n {
-    font-family:   'Cormorant Garamond', serif;
-    font-size:     40px;
-    font-weight:   600;
-    color:         var(--gold-lt);
-    line-height:   1;
-    margin-bottom: 5px;
+.stat-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px;
+    font-weight: 600;
+    color: var(--gold-light);
+    line-height: 1;
+    margin-bottom: 6px;
 }
-.stat-l {
-    font-size:      10.5px;
-    letter-spacing: 0.16em;
-    color:          var(--muted);
-    text-transform: uppercase;
-}
-
-/* ── カテゴリカード（2列グリッド） ── */
-.cat-grid {
-    display:               grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap:                   10px;
-    margin:                14px 0 22px;
-}
-.cat-card {
-    background:    var(--card);
-    border:        1px solid var(--border);
-    border-radius: 4px;
-    padding:       16px 18px;
-    display:       flex;
-    align-items:   flex-start;
-    gap:           12px;
-}
-.cat-icon {
-    width:           33px;
-    height:          33px;
-    border-radius:   50%;
-    background:      rgba(201,168,76,0.10);
-    border:          1px solid var(--border);
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    font-size:       14px;
-    flex-shrink:     0;
-    margin-top:      2px;
-}
-.cat-name {
-    font-family:   'Noto Serif JP', serif;
-    font-size:     13px;
-    font-weight:   600;
-    color:         var(--off-white);
-    margin-bottom: 3px;
-}
-.cat-cnt {
-    font-size:   11px;
-    color:       var(--gold);
-    font-weight: 500;
-}
-.cat-prev {
-    font-size:           10.5px;
-    color:               var(--muted);
-    margin-top:          5px;
-    line-height:         1.6;
-    display:             -webkit-box;
-    -webkit-line-clamp:  2;
-    -webkit-box-orient:  vertical;
-    overflow:            hidden;
+.stat-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
 }
 
-/* ── ログコンソール ── */
-.log-con {
-    background:    #040912;
-    border:        1px solid rgba(201,168,76,0.10);
-    border-radius: 4px;
-    padding:       16px 20px;
-    font-family:   'Courier New', monospace;
-    font-size:     11.5px;
-    color:         #4ade80;
-    line-height:   2.1;
-    max-height:    190px;
-    overflow-y:    auto;
-    margin:        12px 0;
+/* ── Category Preview Cards ── */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 20px 0;
 }
-.ll       { animation: logFadeIn 0.25s ease; }
-.ll.warn  { color: #fbbf24; }
-.ll.err   { color: #f87171; }
-@keyframes logFadeIn {
-    from { opacity: 0; transform: translateX(-4px); }
-    to   { opacity: 1; transform: translateX(0);    }
+.category-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+.category-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(214,0,54,0.12);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.category-name {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--off-white);
+    margin-bottom: 4px;
+}
+.category-count {
+    font-size: 12px;
+    color: var(--gold);
+    font-weight: 500;
+}
+.category-preview {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-/* ── 区切り線 ── */
+/* ── Log Console ── */
+.log-console {
+    background: #080E1C;
+    border: 1px solid rgba(214,0,54,0.15);
+    border-radius: 4px;
+    padding: 20px 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #4ADE80;
+    line-height: 2;
+    max-height: 220px;
+    overflow-y: auto;
+    margin: 16px 0;
+}
+.log-line { animation: fadeIn 0.3s ease; }
+.log-line.warn  { color: #FBBF24; }
+.log-line.error { color: #F87171; }
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; } }
+
+/* ── Progress Bar ── */
+.stProgress > div > div {
+    background: linear-gradient(90deg, var(--gold), var(--gold-light)) !important;
+    border-radius: 2px !important;
+}
+.stProgress > div {
+    background: rgba(214,0,54,0.1) !important;
+    border-radius: 2px !important;
+    height: 3px !important;
+}
+
+/* ── Download Section ── */
+.download-section {
+    background: linear-gradient(135deg, #08112A 0%, #0F1E3A 60%, #152040 100%);
+    border: 2.5px solid var(--gold) !important;
+    border-radius: 8px;
+    padding: 48px 56px;
+    text-align: center;
+    margin: 32px 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(214,0,54,0.15),
+        0 0 60px rgba(214,0,54,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.download-section::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at center, rgba(214,0,54,0.07) 0%, transparent 55%);
+    pointer-events: none;
+}
+.download-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin-bottom: 10px;
+    text-shadow: 0 0 30px rgba(214,0,54,0.35);
+    letter-spacing: 0.02em;
+}
+.download-subtitle {
+    font-size: 14px;
+    color: var(--ice);
+    margin-bottom: 32px;
+    line-height: 1.8;
+    opacity: 0.85;
+}
+
+/* ── Pulse wrapper — forces the Streamlit DL button to throb ── */
+.pulse-button {
+    animation: pulse-gold 1.8s ease-in-out infinite;
+    border-radius: 4px;
+    display: block;
+}
+@keyframes pulse-gold {
+    0%   { box-shadow: 0 0  8px rgba(214,0,54,0.50), 0 0  16px rgba(214,0,54,0.30); }
+    50%  { box-shadow: 0 0 28px rgba(214,0,54,0.90), 0 0  52px rgba(214,0,54,0.55); }
+    100% { box-shadow: 0 0  8px rgba(214,0,54,0.50), 0 0  16px rgba(214,0,54,0.30); }
+}
+
+[data-testid="stDownloadButton"] > button {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light)) !important;
+    color: #FFFFFF !important;
+    font-family: 'Noto Sans JP', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    letter-spacing: 0.10em !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 18px 52px !important;
+    cursor: pointer !important;
+    transition: transform 0.20s ease, box-shadow 0.20s ease !important;
+    width: 100% !important;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    transform: translateY(-3px) scale(1.02) !important;
+    box-shadow: 0 12px 40px rgba(214,0,54,0.65) !important;
+}
+
+/* ── Generate Button ── */
+.stButton > button {
+    background: transparent !important;
+    color: var(--gold) !important;
+    font-family: 'Noto Sans JP', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.1em !important;
+    border: 1px solid var(--gold) !important;
+    border-radius: 2px !important;
+    padding: 12px 36px !important;
+    transition: all 0.25s ease !important;
+    width: 100% !important;
+}
+.stButton > button:hover {
+    background: rgba(214,0,54,0.1) !important;
+    box-shadow: 0 0 20px rgba(214,0,54,0.2) !important;
+}
+
+/* ── Alerts ── */
+.stAlert {
+    background: var(--card) !important;
+    border-radius: 4px !important;
+    border-left-color: var(--gold) !important;
+}
+
+/* ── Divider ── */
 hr {
-    border:     none                       !important;
-    border-top: 1px solid var(--border)    !important;
-    margin:     26px 0                     !important;
+    border: none !important;
+    border-top: 1px solid var(--border) !important;
+    margin: 32px 0 !important;
 }
 
-/* ── サイドバー：ヘッダー ── */
-.sb-head {
-    background:    linear-gradient(180deg, #030812, #0A1228);
-    border-bottom: 1px solid var(--border);
-    padding:       26px 18px 18px;
+/* ── Supported formats badge ── */
+.format-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0 24px;
 }
-.sb-title {
-    font-family:   'Noto Serif JP', serif;
-    font-size:     14px;
-    font-weight:   600;
-    color:         var(--white);
-    margin-bottom: 3px;
-}
-.sb-sub {
-    font-size:      10.5px;
-    color:          var(--muted);
-    letter-spacing: 0.05em;
-}
-
-/* ── サイドバー：履歴アイテム ── */
-.sb-item {
-    padding:       12px 18px;
-    border-bottom: 1px solid rgba(201,168,76,0.07);
-}
-.sb-name {
-    font-size:     11.5px;
-    color:         var(--off-white);
-    margin-bottom: 3px;
-    word-break:    break-all;
-}
-.sb-meta {
-    font-size: 10px;
-    color:     var(--muted);
-}
-.sb-empty {
-    padding:     26px 18px;
-    font-size:   11.5px;
-    color:       var(--muted);
-    text-align:  center;
-    line-height: 2.2;
+.badge {
+    background: rgba(214,0,54,0.08);
+    border: 1px solid rgba(214,0,54,0.3);
+    border-radius: 2px;
+    padding: 4px 12px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--gold-light);
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
 }
 
-/* サイドバー内ダウンロードボタン（コンパクト・グロー無効） */
-section[data-testid="stSidebar"] [data-testid="stDownloadButton"] > button {
-    background:     rgba(201,168,76,0.08)    !important;
-    color:          var(--gold-lt)           !important;
-    font-size:      11px                     !important;
-    font-weight:    500                      !important;
-    padding:        6px 14px                 !important;
-    border:         1px solid var(--border)  !important;
-    border-radius:  2px                      !important;
-    letter-spacing: 0.06em                   !important;
-    box-shadow:     none                     !important;
-    animation:      none                     !important;
-    margin-bottom:  8px                      !important;
-}
-section[data-testid="stSidebar"] [data-testid="stDownloadButton"] > button:hover {
-    background: rgba(201,168,76,0.16)        !important;
-    transform:  none                         !important;
-}
-
-/* ── フッター ── */
+/* ── Footer ── */
 .footer {
-    border-top:     1px solid var(--border);
-    padding:        18px 72px;
-    text-align:     center;
-    font-size:      10.5px;
-    color:          var(--muted);
-    letter-spacing: 0.10em;
+    border-top: 1px solid var(--border);
+    padding: 24px 80px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
 }
 
+/* Streamlit top padding fix */
+.appview-container .main .block-container { padding-top: 0 !important; }
+section[data-testid="stSidebar"] { display: none; }
 </style>
 """
 
 
-# ==============================================================================
-# ファイル読み込み関数  ─  BytesIO 対応・ゼロクラッシュ設計
-# ==============================================================================
-
-def read_pptx_bytes(data: bytes, name: str) -> str:
-    """PPTX ファイル（バイト列）から全スライドのテキストを抽出します。"""
-    lines = [f"【出典：{name}】"]
-    try:
-        prs = Presentation(io.BytesIO(data))
-        for i, slide in enumerate(prs.slides, 1):
-            texts = [
-                para.text.strip()
-                for shape in slide.shapes
-                if shape.has_text_frame
-                for para in shape.text_frame.paragraphs
-                if para.text.strip()
-            ]
-            if texts:
-                lines.append(f"--- スライド {i} ---")
-                lines.extend(texts)
-    except Exception as e:
-        lines.append(f"（読み込みエラー: {e}）")
-    return "\n".join(lines) + "\n"
+# =============================================================================
+# 5. カラーパレット（PPTX生成用：IIJブランドに準拠）
+# =============================================================================
+COLOR_IIJ_CHARCOAL = RGBColor(0x33, 0x33, 0x33) if PPTX_AVAILABLE else None
+COLOR_IIJ_RED      = RGBColor(0xD6, 0x00, 0x36) if PPTX_AVAILABLE else None
+COLOR_WHITE        = RGBColor(0xFF, 0xFF, 0xFF) if PPTX_AVAILABLE else None
+COLOR_LIGHT_GRAY   = RGBColor(0xF4, 0xF4, 0xF4) if PPTX_AVAILABLE else None
+COLOR_BODY_TEXT    = RGBColor(0x33, 0x33, 0x33) if PPTX_AVAILABLE else None
+COLOR_CITATION     = RGBColor(0x99, 0x99, 0x99) if PPTX_AVAILABLE else None
 
 
-def read_xlsx_bytes(data: bytes, name: str) -> str:
-    """XLSX ファイル（バイト列）から全シートのセルデータを抽出します。"""
-    lines = [f"【出典：{name}】"]
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True)
-        for sheet_name in wb.sheetnames:
-            ws = wb[sheet_name]
-            lines.append(f"--- シート: {sheet_name} ---")
-            for row in ws.iter_rows():
-                row_data = [
-                    str(cell.value).strip()
-                    for cell in row
-                    if cell.value is not None
-                ]
-                if row_data:
-                    lines.append(" | ".join(row_data))
-    except Exception as e:
-        lines.append(f"（読み込みエラー: {e}）")
-    return "\n".join(lines) + "\n"
+# =============================================================================
+# 6. 分類キーワード定義
+# =============================================================================
+CATEGORY_KEYWORDS = {
+    "今月の成果": [
+        "成果", "達成", "完了", "リリース", "ローンチ", "公開", "獲得", "受注",
+        "契約", "成功", "実施", "完成", "提供", "展開", "運用開始",
+    ],
+    "数値指標": [
+        "売上", "収益", "利益", "コスト", "費用", "予算", "KPI", "目標", "達成率",
+        "前月比", "前年比", "増加", "減少", "%", "万円", "千件", "PV", "CVR",
+        "ROI", "CPA", "CPC", "クリック率", "転換率", "件数", "数",
+    ],
+    "発生した課題": [
+        "課題", "問題", "障害", "遅延", "バグ", "エラー", "リスク", "懸念",
+        "未達", "不足", "改善が必要", "検討が必要", "対応中", "調査中", "ペンディング",
+    ],
+    "次月の予定": [
+        "予定", "計画", "スケジュール", "来月", "次月", "今後", "方針", "施策",
+        "実施予定", "リリース予定", "検討予定", "対応予定", "目標設定",
+    ],
+}
+
+CATEGORY_ICONS = {
+    "今月の成果":       "🏆",
+    "数値指標":         "📊",
+    "発生した課題":     "⚠️",
+    "次月の予定":       "📅",
+    "その他・参考情報": "📎",
+}
 
 
-def read_pdf_bytes(data: bytes, name: str) -> str:
-    """PDF ファイル（バイト列）から全ページのテキストを抽出します。"""
-    lines = [f"【出典：{name}】"]
-    try:
-        with pdfplumber.open(io.BytesIO(data)) as pdf:
-            for i, page in enumerate(pdf.pages, 1):
-                text = page.extract_text()
-                if text and text.strip():
-                    lines.append(f"--- ページ {i} ---")
-                    lines.append(text.strip())
-    except Exception as e:
-        lines.append(f"（読み込みエラー: {e}）")
-    return "\n".join(lines) + "\n"
+# =============================================================================
+# 7. ファイル読み込み関数（BytesIO対応版）
+# =============================================================================
+
+def read_pptx_bytes(file_bytes: bytes, filename: str) -> str:
+    lines = [f"【出典：{filename}】"]
+    try:
+        prs = Presentation(io.BytesIO(file_bytes))
+        for i, slide in enumerate(prs.slides, start=1):
+            slide_texts = []
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            slide_texts.append(text)
+            if slide_texts:
+                lines.append(f"--- スライド {i} ---")
+                lines.extend(slide_texts)
+    except Exception as e:
+        lines.append(f"（読み込みエラー: {e}）")
+    return "\n".join(lines) + "\n"
 
 
-def read_txt_bytes(data: bytes, name: str) -> str:
-    """TXT ファイル（バイト列）を文字コードに配慮して読み込みます。"""
-    lines = [f"【出典：{name}】"]
-    for enc in ["utf-8", "shift-jis", "cp932", "utf-16", "latin-1"]:
-        try:
-            lines.append(data.decode(enc).strip())
-            return "\n".join(lines) + "\n"
-        except (UnicodeDecodeError, LookupError):
-            continue
-    lines.append("（文字コードを特定できませんでした）")
-    return "\n".join(lines) + "\n"
+def read_xlsx_bytes(file_bytes: bytes, filename: str) -> str:
+    lines = [f"【出典：{filename}】"]
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            lines.append(f"--- シート: {sheet_name} ---")
+            for row in ws.iter_rows():
+                row_data = [str(cell.value).strip() for cell in row if cell.value is not None]
+                if row_data:
+                    lines.append(" | ".join(row_data))
+    except Exception as e:
+        lines.append(f"（読み込みエラー: {e}）")
+    return "\n".join(lines) + "\n"
 
 
-# ==============================================================================
-# 処理ロジック
-# ==============================================================================
-
-def process_files(uploaded_files) -> tuple[list[dict], list[str]]:
-    """
-    アップロードされたファイルを読み込んでテキストを抽出します。
-
-    Returns
-    -------
-    tuple[list[dict], list[str]]
-        ファイルデータリスト（filename / text）と処理ログリスト
-    """
-    READERS: dict = {
-        ".pptx": read_pptx_bytes,
-        ".xlsx": read_xlsx_bytes,
-        ".pdf":  read_pdf_bytes,
-        ".txt":  read_txt_bytes,
-    }
-    results: list[dict] = []
-    logs:    list[str]  = []
-
-    for uf in uploaded_files:
-        ext = Path(uf.name).suffix.lower()
-        if ext not in READERS:
-            logs.append(f"⏭  スキップ: {uf.name}（非対応フォーマット）")
-            continue
-        logs.append(f"📄  {uf.name} を読み込み中...")
-        try:
-            text = READERS[ext](uf.read(), uf.name)
-            results.append({"filename": uf.name, "text": text})
-            logs.append(f"✅  {uf.name} 読み込み完了")
-        except Exception as e:
-            logs.append(f"❌  {uf.name} 失敗: {e}")
-
-    return results, logs
+def read_pdf_bytes(file_bytes: bytes, filename: str) -> str:
+    lines = [f"【出典：{filename}】"]
+    try:
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            for i, page in enumerate(pdf.pages, start=1):
+                text = page.extract_text()
+                if text and text.strip():
+                    lines.append(f"--- ページ {i} ---")
+                    lines.append(text.strip())
+    except Exception as e:
+        lines.append(f"（読み込みエラー: {e}）")
+    return "\n".join(lines) + "\n"
 
 
-def classify(file_data_list: list[dict]) -> dict:
-    """
-    キーワードマッチングでテキストを最大 5 カテゴリに分類します。
-    要約は行わず、原文の情報をそのまま整理します。
-
-    Returns
-    -------
-    dict  カテゴリ名 → [{"text": str, "source": str}] のリスト
-    """
-    cats:  dict       = {k: [] for k in CATEGORY_KEYWORDS}
-    other: list[dict] = []
-
-    for fd in file_data_list:
-        fn = fd["filename"]
-        for line in fd["text"].split("\n"):
-            s = line.strip()
-            # 空行・ヘッダー行・出典行はスキップ
-            if not s or s.startswith("---") or s.startswith("【出典"):
-                continue
-            matched = False
-            for cat, kws in CATEGORY_KEYWORDS.items():
-                if any(kw in s for kw in kws):
-                    cats[cat].append({"text": s, "source": fn})
-                    matched = True
-                    break
-            if not matched and len(s) > 5:
-                other.append({"text": s, "source": fn})
-
-    if other:
-        cats["その他・参考情報"] = other
-
-    return cats
+def read_txt_bytes(file_bytes: bytes, filename: str) -> str:
+    lines = [f"【出典：{filename}】"]
+    encodings = ["utf-8", "shift-jis", "cp932", "utf-16", "latin-1"]
+    for enc in encodings:
+        try:
+            content = file_bytes.decode(enc).strip()
+            lines.append(content)
+            return "\n".join(lines) + "\n"
+        except (UnicodeDecodeError, LookupError):
+            continue
+    lines.append("（文字コードを特定できませんでした）")
+    return "\n".join(lines) + "\n"
 
 
-# ==============================================================================
-# PPTX 生成
-# ==============================================================================
+# =============================================================================
+# 8. 処理ロジック
+# =============================================================================
 
-def _bg(slide, color: "RGBColor") -> None:
-    """スライドの背景色をソリッド塗りで設定します。"""
-    fill = slide.background.fill
-    fill.solid()
-    fill.fore_color.rgb = color
+def process_uploaded_files(uploaded_files) -> tuple[list[dict], list[str]]:
+    READERS = {
+        ".pptx": read_pptx_bytes,
+        ".xlsx": read_xlsx_bytes,
+        ".pdf":  read_pdf_bytes,
+        ".txt":  read_txt_bytes,
+    }
+    results = []
+    logs = []
 
+    for uf in uploaded_files:
+        ext = Path(uf.name).suffix.lower()
+        if ext not in READERS:
+            logs.append(f"⏭  スキップ: {uf.name}（非対応フォーマット）")
+            continue
 
-def _tb(
-    slide,
-    text:  str,
-    l:     float,
-    t:     float,
-    w:     float,
-    h:     float,
-    size:  int,
-    bold:  bool             = False,
-    color: "RGBColor | None" = None,
-    align                   = None,
-) -> None:
-    """
-    スライドにテキストボックスを追加するヘルパー関数。
+        logs.append(f"📄  {uf.name} を読み込み中...")
+        try:
+            file_bytes = uf.read()
+            text = READERS[ext](file_bytes, uf.name)
+            results.append({"filename": uf.name, "text": text})
+            logs.append(f"✅  {uf.name} の読み込み完了")
+        except Exception as e:
+            logs.append(f"❌  {uf.name} の読み込みに失敗: {e}")
 
-    Parameters
-    ----------
-    slide   : slide オブジェクト
-    text    : 表示文字列（\n で改行）
-    l, t    : 左・上位置（インチ）
-    w, h    : 幅・高さ（インチ）
-    size    : フォントサイズ（pt）
-    bold    : 太字にするか
-    color   : RGBColor（None の場合はデフォルト黒）
-    align   : PP_ALIGN 定数（None の場合は LEFT）
-    """
-    if align is None:
-        align = PP_ALIGN.LEFT
-    tb          = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
-    tf          = tb.text_frame
-    tf.word_wrap = True
-    p           = tf.paragraphs[0]
-    p.alignment = align
-    run         = p.add_run()
-    run.text    = text
-    run.font.size = Pt(size)
-    run.font.bold = bold
-    if color is not None:
-        run.font.color.rgb = color
+    return results, logs
 
 
-def _build_title_slide(prs: "Presentation", today_str: str) -> None:
-    """タイトルスライド（1 枚目）を生成します。"""
-    sl = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(sl, C_DARK)
+def classify_text_to_categories(file_data_list: list[dict]) -> dict:
+    categories = {cat: [] for cat in CATEGORY_KEYWORDS}
+    uncategorized = []
 
-    # 左端アクセントバー（アイスブルー縦線）
-    bar = sl.shapes.add_shape(1, Inches(0), Inches(0), Inches(0.15), Inches(7.5))
-    bar.fill.solid()
-    bar.fill.fore_color.rgb = C_ACCENT
-    bar.line.fill.background()
+    for file_data in file_data_list:
+        filename = file_data["filename"]
+        for line in file_data["text"].split("\n"):
+            line = line.replace("<", "&lt;").replace(">", "&gt;")  # HTMLコード露出防止
+            stripped = line.strip()
+            if not stripped or stripped.startswith("---") or stripped.startswith("【出典"):
+                continue
+            matched = False
+            for category, keywords in CATEGORY_KEYWORDS.items():
+                if any(kw in stripped for kw in keywords):
+                    categories[category].append({"text": stripped, "source": filename})
+                    matched = True
+                    break
+            if not matched and len(stripped) > 5:
+                uncategorized.append({"text": stripped, "source": filename})
 
-    # メインタイトル
-    _tb(
-        sl,
-        "【自動生成】\nチーム進捗報告\n統合レポート",
-        l=0.5, t=1.5, w=9.0, h=3.0,
-        size=40, bold=True, color=C_WHITE,
-        align=PP_ALIGN.LEFT,
-    )
+    if uncategorized:
+        categories["その他・参考情報"] = uncategorized
 
-    # 向平様へのご挨拶テキスト
-    _tb(
-        sl,
-        "向平様\n\n"
-        "お忙しい中、ご確認いただきありがとうございます。\n"
-        "本レポートは各部門からの報告資料を自動統合・整理したものです。\n"
-        "情報の正確性を最優先し、原文を整理して掲載しております。",
-        l=0.5, t=4.5, w=8.5, h=2.5,
-        size=14, color=C_ACCENT,
-        align=PP_ALIGN.LEFT,
-    )
-
-    # 右下の生成日時
-    _tb(
-        sl,
-        f"生成日時: {today_str}　Project Relay 自動生成",
-        l=0.5, t=7.0, w=9.0, h=0.4,
-        size=10, color=C_CITE,
-        align=PP_ALIGN.RIGHT,
-    )
+    return categories
 
 
-def _build_index_slide(prs: "Presentation", cats: dict) -> None:
-    """目次スライド（2 枚目）を生成
+# =============================================================================
+# 9. PowerPoint 生成関数（IIJデザイン・ブランディング）
+# =============================================================================
+
+def _add_bg(slide, color):
+    """スライド背景色を設定します。"""
+    fill = slide.background.fill
+    fill.solid()
+    fill.fore_color.rgb = color
+
+
+def _draw_iij_logo(slide):
+    """IIJロゴの完全再現：フォントとドット位置を精密調整"""
+    # "IIJ" テキスト
+    tb = slide.shapes.add_textbox(Inches(8.6), Inches(0.2), Inches(1.0), Inches(0.5))
+    tf = tb.text_frame
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "IIJ"
+    run.font.size = Pt(28)
+    run.font.bold = True
+    run.font.color.rgb = COLOR_IIJ_CHARCOAL
+
+    # 赤いドット：Jの右側に寄り添う配置へ修正
+    dot_size = Inches(0.12)
+    dot = slide.shapes.add_shape(
+        MSO_SHAPE.OVAL,
+        Inches(9.34), Inches(0.48),
+        dot_size, dot_size,
+    )
+    dot.fill.solid()
+    dot.fill.fore_color.rgb = COLOR_IIJ_RED
+    dot.line.fill.background()
+
+
+def _add_tb(slide, text, l, t, w, h, size, bold=False, color=None, align=None):
+    """スライドにテキストボックスを追加するヘルパー関数。"""
+    if align is None:
+        align = PP_ALIGN.LEFT
+    tb = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.alignment = align
+    run = p.add_run()
+    run.text = text
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    if color:
+        run.font.color.rgb = color
+
+
+def _build_title_slide(prs, today_str: str):
+    """タイトルスライド（1枚目）を生成します。"""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _add_bg(slide, COLOR_IIJ_CHARCOAL)
+
+    # 左側の赤いアクセントバー
+    bar = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(0), Inches(0), Inches(0.2), Inches(7.5),
+    )
+    bar.fill.solid()
+    bar.fill.fore_color.rgb = COLOR_IIJ_RED
+    bar.line.fill.background()
+
+    _add_tb(
+        slide,
+        "Project Relay\n統合報告レポート",
+        0.6, 2.0, 9.0, 2.5,
+        44, bold=True, color=COLOR_WHITE, align=PP_ALIGN.LEFT,
+    )
+
+    greeting = (
+        "向平 友治 様\n\n"
+        "各部門資料から抽出された最新のステータスを統合しました。\n"
+        "IIJブランドに準拠したフォーマットで整理しております。"
+    )
+    _add_tb(slide, greeting, 0.6, 4.5, 8.5, 2.0, 16, color=COLOR_WHITE, align=PP_ALIGN.LEFT)
+    _add_tb(slide, f"生成日: {today_str}", 0.6, 6.8, 9.0, 0.4, 12, color=COLOR_WHITE, align=PP_ALIGN.LEFT)
+
+
+def _build_index_slide(prs, categories: dict):
+    """目次スライド（2枚目）を生成します。"""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _add_bg(slide, COLOR_WHITE)
+    _draw_iij_logo(slide)
+
+    _add_tb(slide, "目次 / Index", 0.5, 0.5, 8.0, 1.0, 28, bold=True, color=COLOR_IIJ_CHARCOAL)
+
+    # 区切り線
+    sep = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(0.5), Inches(1.3), Inches(9.0), Inches(0.02),
+    )
+    sep.fill.solid()
+    sep.fill.fore_color.rgb = COLOR_IIJ_RED
+    sep.line.fill.background()
+
+    index_lines = []
+    num = 1
+    for cat, items in categories.items():
+        if items:
+            index_lines.append(f"  0{num}.  {cat} ({len(items)} items)")
+            num += 1
+
+    _add_tb(slide, "\n".join(index_lines), 0.8, 1.8, 8.5, 5.0, 20, color=COLOR_IIJ_CHARCOAL)
+
+
+def _build_content_slide(prs, category: str, items: list[dict]):
+    """カテゴリごとのコンテンツスライドを生成します（最大10件/スライド）。"""
+    if not items:
+        return
+
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _add_bg(slide, COLOR_WHITE)
+    _draw_iij_logo(slide)
+
+    # ヘッダー
+    _add_tb(slide, category, 0.5, 0.4, 8.0, 0.8, 28, bold=True, color=COLOR_IIJ_CHARCOAL)
+
+    # 小さな赤いドット付きの下線
+    sep = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(0.5), Inches(1.1), Inches(4.0), Inches(0.03),
+    )
+    sep.fill.solid()
+    sep.fill.fore_color.rgb = COLOR_IIJ_RED
+    sep.line.fill.background()
+
+    MAX_ITEMS = 10
+    display_items = items[:MAX_ITEMS]
+    remaining = len(items) - MAX_ITEMS
+
+    body_lines = [f"■ {item['text']}" for item in display_items]
+    sources_seen = {item["source"] for item in display_items}
+    if remaining > 0:
+        body_lines.append(f"（他 {remaining} 件の情報を省略 — 元資料を確認してください）")
+
+    _add_tb(slide, "\n".join(body_lines), 0.6, 1.6, 8.8, 5.0, 14, color=COLOR_BODY_TEXT)
+
+    sources_str = "Source: " + ", ".join(sorted(sources_seen))
+    _add_tb(slide, sources_str, 3.5, 7.0, 6.0, 0.3, 9, color=COLOR_CITATION, align=PP_ALIGN.RIGHT)
+
+
+def generate_pptx_bytes(categories: dict, today_str: str) -> bytes:
+    """カテゴリ辞書からPowerPointを生成し、バイト列で返します。"""
+    prs = Presentation()
+    prs.slide_width  = Inches(10)
+    prs.slide_height = Inches(7.5)
+
+    _build_title_slide(prs, today_str)
+    _build_index_slide(prs, categories)
+
+    for category, items in categories.items():
+        if items:
+            _build_content_slide(prs, category, items)
+
+    buf = io.BytesIO()
+    prs.save(buf)
+    return buf.getvalue()
+
+
+# =============================================================================
+# 10. UI レンダリング関数
+# =============================================================================
+
+def render_hero():
+    """ページ上部のヒーローヘッダーを描画します。"""
+    st.markdown("""
+    <div class="hero">
+        <div class="hero-eyebrow">⬡ &nbsp; Project Relay</div>
+        <div class="hero-title">統合報告レポート<span>、自動生成。</span></div>
+        <div class="hero-subtitle">
+            バラバラな形式の報告資料を一括取込み、IIJブランド仕様のパワーポイントを即座に生成します。<br>
+            向平様の意思決定を最短距離でサポートするために設計されました。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_format_badges():
+    """対応フォーマットのバッジを表示します。"""
+    st.markdown("""
+    <div class="format-badges">
+        <span class="badge">.pptx</span>
+        <span class="badge">.xlsx</span>
+        <span class="badge">.pdf</span>
+        <span class="badge">.txt</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_stat_cards(num_files: int, total_items: int, num_slides: int):
+    """3列の統計カードを表示します。"""
+    st.markdown(f"""
+    <div class="stat-row">
+        <div class="stat-card">
+            <div class="stat-number">{num_files}</div>
+            <div class="stat-label">読み込んだファイル数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{total_items}</div>
+            <div class="stat-label">分類された情報項目数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{num_slides}</div>
+            <div class="stat-label">生成スライド枚数</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_category_preview(categories: dict):
+    """カテゴリ別プレビューカードを2列グリッドで表示します。"""
+    cards_html = ""
+    for cat, items in categories.items():
+        if not items:
+            continue
+        icon = CATEGORY_ICONS.get(cat, "📄")
+        preview = items[0]["text"].replace("<", "&lt;").replace(">", "&gt;")[:60] + "…"
+        cards_html += f"""
+        <div class="category-card">
+            <div class="category-icon">{icon}</div>
+            <div>
+                <div class="category-name">{cat}</div>
+                <div class="category-count">{len(items)} 件の情報を抽出</div>
+                <div class="category-preview">{preview}</div>
+            </div>
+        </div>
+        """
+    st.markdown(f'<div class="category-grid">{cards_html}</div>', unsafe_allow_html=True)
+
+
+def render_log_console(logs: list[str]):
+    """処理ログをターミナル風コンソールに表示します。"""
+    lines_html = ""
+    for log in logs:
+        css_class = "warn" if "⏭" in log or "⚠" in log else ("error" if "❌" in log else "")
+        lines_html += f'<div class="log-line {css_class}">{log}</div>'
+    st.markdown(f'<div class="log-console">{lines_html}</div>', unsafe_allow_html=True)
+
+
+def render_footer():
+    """ページ下部のフッターを表示します。"""
+    st.markdown(
+        '<div class="footer">'
+        'Project Relay &nbsp;|&nbsp; 向平 友治 様専用プロトタイプ &nbsp;|&nbsp; IIJ Brand Guidelines Applied'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# =============================================================================
+# 11. メイン（認証済みユーザー専用）
+# =============================================================================
+
+def main():
+    """
+    メインUIを描画します。
+    認証後のみ実行されます（st.stop()により未認証時はここに到達しません）。
+    """
+    st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
+    render_hero()
+    st.markdown('<div class="main-content">', unsafe_allow_html=True)
+
+    # ── ① アップロードゾーン ──────────────────────────────────────────────────
+    st.markdown('<div class="section-label">01 &nbsp; ファイルをアップロード</div>', unsafe_allow_html=True)
+    render_format_badges()
+
+    uploaded_files = st.file_uploader(
+        "ここに報告資料をドロップしてください　（複数ファイル対応）",
+        type=["pptx", "xlsx", "pdf", "txt"],
+        accept_multiple_files=True,
+    )
+
+    if not uploaded_files:
+        st.markdown('</div>', unsafe_allow_html=True)
+        render_footer()
+        return
+
+    # ── ② 生成ボタン ─────────────────────────────────────────────────────────
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown('<div class="section-label">02 &nbsp; レポートを生成</div>', unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        generate_btn = st.button("⬡　統合レポートを生成する", use_container_width=True)
+
+    # ── ③ 処理実行 ───────────────────────────────────────────────────────────
+    if generate_btn or st.session_state.get("pptx_ready"):
+        if generate_btn:
+            # プログレスバーのみ表示（中間ログ・ステータス文字列は出さない）
+            progress = st.progress(0)
+
+            # Step 1: ファイル読み込み
+            file_data_list, _ = process_uploaded_files(uploaded_files)
+            progress.progress(35)
+
+            # Step 2: キーワード分類
+            categories = classify_text_to_categories(file_data_list)
+            progress.progress(65)
+
+            # Step 3: PPTX 生成
+            today_str  = datetime.now().strftime("%Y年%m月%d日 %H:%M")
+            pptx_bytes = generate_pptx_bytes(categories, today_str)
+            progress.progress(100)
+
+            # プログレスバーを消去してノイズをゼロに
+            progress.empty()
+
+            # セッションに保存
+            st.session_state["pptx_ready"]   = True
+            st.session_state["pptx_bytes"]   = pptx_bytes
+            st.session_state["categories"]   = categories
+            st.session_state["file_count"]   = len(file_data_list)
+            st.session_state["show_toast"]   = True   # 初回のみトーストを出すフラグ
+            st.rerun()
+
+        # ── ④ 完了後の表示 ─────────────────────────────────────────────────────
+        if st.session_state.get("pptx_ready"):
+
+            # ── トースト通知（生成直後の 1 回だけ表示） ──
+            if st.session_state.pop("show_toast", False):
+                st.toast("✅ レポートの生成が完了しました", icon="✅")
+
+            # ── ダウンロードセクション（アンカー + 強調カード） ──
+            st.markdown("""
+            <div class="download-section" id="dl-anchor">
+                <div class="download-title">✅ IIJブランド・統合レポート完成</div>
+                <div class="download-subtitle">
+                    すべての解析が正常に終了しました。<br>
+                    下のボタンからレポートをダウンロードしてください。
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # pulse-button ラッパーで Streamlit DL ボタンを赤く脈動させる
+            st.markdown('<div class="pulse-button">', unsafe_allow_html=True)
+            col_l, col_c, col_r = st.columns([1, 2, 1])
+            with col_c:
+                st.download_button(
+                    label="⬇　レポートをダウンロード",
+                    data=st.session_state["pptx_bytes"],
+                    file_name=f"IIJ_Project_Relay_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pptx",
+                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    use_container_width=True,
+                )
+            st.markdown('</div>', unsafe_allow_html=True)  # .pulse-button 閉じ
+
+            # ── 自動スクロール ──
+            # components.html は独立した iframe 内で JS を確実に実行するため
+            # Streamlit の再レンダリング後も安定して動作する。
+            # parent.document でホスト側の DOM を参照し、#dl-anchor を正中線へスクロール。
+            import streamlit.components.v1 as components
+            components.html("""
+            <script>
+                (function () {
+                    function scroll() {
+                        var el = parent.document.getElementById('dl-anchor');
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        } else {
+                            setTimeout(scroll, 100);
+                        }
+                    }
+                    setTimeout(scroll, 300);
+                })();
+            </script>
+            """, height=0)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    render_footer()
+
+
+# =============================================================================
+# エントリーポイント
+# =============================================================================
+if __name__ == "__main__":
+    main()
