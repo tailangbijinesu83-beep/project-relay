@@ -2244,7 +2244,10 @@ def render_review_screen() -> None:
                 continue
 
             # 各アイテムを行で表示
-            for it in items_cat:
+            # ck はセッション管理・_build_selected_from_review でも使うため item_key ベースを維持。
+            # checkbox の widget key には追加で行インデックスを付与して
+            # 同テキストが複数行あっても StreamlitDuplicateElementKey が出ないようにする。
+            for row_i, it in enumerate(items_cat):
                 ck = item_key(it, f"chk_{cat}")
                 if ck not in st.session_state:
                     st.session_state[ck] = True
@@ -2271,7 +2274,15 @@ def render_review_screen() -> None:
                 # 行コンテナ（チェックボックスと短文を横並び）
                 col_chk, col_content = st.columns([0.4, 5.6])
                 with col_chk:
-                    st.checkbox("", key=ck, label_visibility="collapsed")
+                    # widget key = ハッシュキー + カテゴリ + 行番号 で完全に一意にする
+                    widget_ck = f"{ck}_{cat}_{row_i}"
+                    checked = st.checkbox(
+                        "", key=widget_ck,
+                        value=st.session_state[ck],
+                        label_visibility="collapsed",
+                    )
+                    # widget の値をセッション（ck）に書き戻す
+                    st.session_state[ck] = checked
                 with col_content:
                     short_txt = st.session_state.get(
                         item_key(it, f"sht_{cat}"), it["short"]
