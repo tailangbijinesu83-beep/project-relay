@@ -505,6 +505,148 @@ hr { border: none !important; border-top: 1px solid var(--b0) !important; margin
   background: rgba(255,255,255,.04) !important; border: 1px solid var(--b1) !important;
   color: var(--t1) !important; font-size: 13px !important; border-radius: var(--r-sm) !important;
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   v18 REVIEW 画面 — 施策カードUI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* 採用カウンターバー */
+.sc-counter {
+  background: var(--bg2); border: 1px solid var(--b1);
+  border-radius: var(--r-sm); padding: 9px 16px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 12px;
+}
+.sc-cnt-num { font-size: 24px; font-weight: 700; color: var(--t0); line-height: 1; }
+.sc-cnt-lbl { font-size: 10px; color: var(--t3); margin-top: 1px; }
+.sc-cnt-sep { width: 1px; height: 30px; background: var(--b1); flex-shrink: 0; }
+.sc-cnt-stat { font-size: 11px; color: var(--t2); }
+
+/* 施策カード外枠 */
+.sc-card {
+  background: var(--card); border: 1px solid var(--b1);
+  border-radius: var(--r-lg); overflow: hidden;
+  margin-bottom: 10px; transition: border-color .15s, box-shadow .15s;
+}
+.sc-card:hover { border-color: var(--b2); box-shadow: 0 2px 18px rgba(0,0,0,.26); }
+.sc-card.sc-on  { border-left: 3px solid var(--grn); }
+.sc-card.sc-off { opacity: .35; border-left: 3px solid var(--t3); }
+
+/* タイトル行 */
+.sc-head {
+  background: linear-gradient(135deg, #08122A 0%, #0E1D3C 100%);
+  padding: 9px 14px; border-bottom: 1px solid var(--b1);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+}
+.sc-head-left  { flex: 1; }
+.sc-head-num   { font-size: 8px; letter-spacing: .38em; color: var(--red); font-weight: 700; text-transform: uppercase; }
+.sc-head-title { font-size: 13.5px; font-weight: 700; color: var(--t0); line-height: 1.35; margin-top: 3px; }
+.sc-head-src   { font-size: 9px; color: var(--t3); margin-top: 2px; font-style: italic; }
+
+/* 評価バッジ（ヘッダー右上） */
+.sc-ev { display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+  padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:2px; }
+.sc-ev.ok  { background:var(--grn-a);color:var(--grn-l);border:1px solid var(--bg_); }
+.sc-ev.ng  { background:var(--red-a);color:var(--red-l);border:1px solid var(--br); }
+.sc-ev.ing { background:var(--amb-a);color:var(--amb-l);border:1px solid var(--ba); }
+.sc-ev.unk { background:var(--bg3);  color:var(--t3);   border:1px solid var(--b1); }
+
+/* 4ブロック本文 */
+.sc-body { display: grid; grid-template-columns: 1fr 1fr; }
+.sc-blk  {
+  padding: 9px 14px;
+  border-right: 1px solid var(--b0);
+  border-bottom: 1px solid var(--b0);
+}
+.sc-blk:nth-child(2n)  { border-right: none; }
+.sc-blk:nth-child(n+3) { border-bottom: none; }
+
+.sc-blk-lbl {
+  font-size: 8px; font-weight: 700; letter-spacing: .22em;
+  text-transform: uppercase; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 4px;
+}
+.sc-blk-lbl.dt  { color: var(--amb-l); }
+.sc-blk-lbl.ac  { color: var(--blu-l); }
+.sc-blk-lbl.rs  { color: var(--grn-l); }
+.sc-blk-lbl.sh  { color: #c4b5fd; }
+
+.sc-blk-body { font-size: 11.5px; color: var(--t1); line-height: 1.65; }
+.sc-blk-li::before { content: '・'; color: var(--t3); }
+
+/* 共有トピックフッター（全幅） */
+.sc-share {
+  background: rgba(99,102,241,.06);
+  border-top: 1px solid rgba(99,102,241,.20);
+  padding: 8px 14px; display: flex; gap: 8px; align-items: flex-start;
+}
+.sc-share-body { font-size: 11px; color: var(--t2); line-height: 1.62; flex: 1; }
+
+/* v18 施策編集カード */
+.sc-edit-card {
+  background: var(--card); border: 1px solid var(--b1);
+  border-radius: var(--r-lg); overflow: hidden; margin-bottom: 14px;
+}
+.sc-edit-head {
+  background: linear-gradient(135deg, #08122A 0%, #0E1D3C 100%);
+  padding: 10px 16px; border-bottom: 1px solid var(--b1);
+}
+.sc-edit-body { padding: 14px 16px; }
+.sc-edit-lbl {
+  font-size: 9px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--t3); margin: 12px 0 4px;
+}
+.sc-edit-lbl:first-child { margin-top: 0; }
+
+/* v19 確認画面 施策インライン編集 */
+.conf-strat-wrap {
+  border: 1px solid var(--b1); border-radius: var(--r-lg);
+  overflow: hidden; margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.22);
+  transition: box-shadow .15s;
+}
+.conf-strat-wrap:hover { box-shadow: 0 4px 22px rgba(0,0,0,.34); }
+.conf-strat-hdr {
+  background: linear-gradient(135deg, #060e1c 0%, #0d1a30 100%);
+  padding: 11px 16px 9px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  border-bottom: 1px solid rgba(200,220,255,.10);
+}
+.conf-strat-num {
+  font-size: 8px; letter-spacing: .36em; color: var(--red);
+  font-weight: 700; text-transform: uppercase; margin-bottom: 3px;
+}
+.conf-strat-title { font-size: 14px; font-weight: 700; color: var(--t0); line-height: 1.3; }
+.conf-strat-src   { font-size: 9px; color: var(--t3); margin-top: 3px; font-style: italic; }
+.conf-strat-meta {
+  background: rgba(238,242,248,.06); padding: 6px 16px;
+  border-bottom: 2px solid var(--red);
+  font-size: 11px; color: #a0aec0;
+  display: flex; gap: 18px; align-items: center;
+}
+.conf-ev { display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+  padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0; }
+.conf-ev.ok  { background:var(--grn-a);color:var(--grn-l);border:1px solid var(--bg_); }
+.conf-ev.ng  { background:var(--red-a);color:var(--red-l);border:1px solid var(--br); }
+.conf-ev.ing { background:var(--amb-a);color:var(--amb-l);border:1px solid var(--ba); }
+.conf-ev.unk { background:var(--bg3);  color:var(--t3);   border:1px solid var(--b1); }
+.conf-edit-hint {
+  background: rgba(30,58,138,.08); border: 1px solid rgba(30,58,138,.20);
+  border-left: 3px solid var(--blu-l);
+  border-radius: var(--r-sm); padding: 8px 12px; margin-bottom: 10px;
+  font-size: 11px; color: var(--blu-l);
+}
+.conf-field-lbl {
+  font-size: 9px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
+}
+.conf-field-lbl.dt { color: var(--amb-l); }
+.conf-field-lbl.ac { color: var(--blu-l); }
+.conf-field-lbl.rs { color: var(--grn-l); }
+.conf-field-lbl.sh { color: #c4b5fd; }
+.conf-share-wrap {
+  background: rgba(99,102,241,.05); border-top: 1px solid rgba(99,102,241,.18);
+  padding: 10px 16px;
+}
 </style>
 """
 
@@ -531,7 +673,6 @@ hr { border: none !important; border-top: 1px solid var(--b0) !important; margin
 # ==============================================================================
 
 
-# ==============================================================================
 # LAYER 4 ─ ドメインモデル (データクラス)
 # ==============================================================================
 
@@ -808,6 +949,12 @@ def get_review_hint(item: dict) -> str:
 CONF_TH = 0.52
 VOL = {"少（上位8件）": 8, "中（上位15件）": 15, "多（全件）": 999}
 
+# 画面フェーズ定数
+PHASE_UPLOAD  = "upload"
+PHASE_REVIEW  = "review"
+PHASE_EDIT    = "edit"
+PHASE_CONFIRM = "confirm"
+
 # ==============================================================================
 # LAYER 6 ─ ファイル読み込みエンジン
 # ==============================================================================
@@ -898,6 +1045,59 @@ def _attach_causal_bonus(items: list[dict]) -> None:
             elif cat == "結果" and ("課題" in window_cats or "対応" in window_cats):
                 it["causal_bonus"] = True
 
+def extract(uploaded_files) -> list[dict]:
+    """
+    複数ファイルからアイテムを抽出し、スコアリング・ソートして返す。
+    v18: raw アイテムに加えて _analyze_items() で施策配列も生成し
+         session_state["strategies"] に保存する。
+
+    戻り値: sorted raw items (list[dict])
+    副作用: st.session_state["strategies"] を設定する
+    """
+    READERS = {
+        ".pptx": _rd_pptx,
+        ".xlsx": _rd_xlsx,
+        ".pdf":  _rd_pdf,
+        ".txt":  _rd_txt,
+    }
+    all_items: list[dict] = []
+
+    for uf in uploaded_files:
+        ext = Path(uf.name).suffix.lower()
+        if ext not in READERS:
+            continue
+        raw = READERS[ext](uf.read(), uf.name)
+        for it in raw:
+            orig = it["original"]
+            it["short"]       = shorten(orig)
+            it["category"]    = classify(orig)
+            it["score"]       = (
+                sum(10 for kw in HIGH_KW if kw in orig)
+                + (5 if has_num(orig) else 0)
+                + (2 if len(orig) < 80 else 0)
+            )
+            it["causal_bonus"] = False
+        raw = [it for it in raw if not is_noise(it["short"])]
+        all_items.extend(raw)
+
+    _attach_causal_bonus(all_items)
+    for it in all_items:
+        it["confidence"] = calc_confidence(it)
+
+    sorted_items = sorted(all_items, key=lambda x: x["score"], reverse=True)
+
+    # v18: 施策配列を同時生成してセッションに保存
+    # 全件を sel dict 形式に変換して _analyze_items に渡す
+    sel_all: dict[str, list] = {c: [] for c in CATS}
+    for it in sorted_items:
+        c = it.get("category", "課題")
+        if c in sel_all:
+            sel_all[c].append(it)
+    st.session_state["strategies"] = _analyze_items(sel_all)
+
+    return sorted_items
+
+
 # ==============================================================================
 # LAYER 7 ─ PPTX 生成エンジン
 #
@@ -922,24 +1122,43 @@ def _logo(sl):
 
 def _tb(sl, text, l, t, w, h, size,
         bold=False, italic=False, color=None, align=None, spacing=1.2):
-    """テキストボックスを追加する。spacing は行間倍率。"""
-    from pptx.util import Pt as _Pt, Emu
-    if align is None:
-        align = PP_ALIGN.LEFT
-    tb = sl.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
-    tf = tb.text_frame; tf.word_wrap = True
-    p  = tf.paragraphs[0]; p.alignment = align
-    # 行間設定
+    """
+    テキストボックスを追加する。
+    v18改善: \\n で複数段落に分割し、各段落に行間・スタイルを適用する。
+    spacing は行間倍率（1.2=120%）。
+    """
+    from pptx.util import Pt as _Pt
     from pptx.oxml.ns import qn
     from lxml import etree as _et
-    pPr = p._p.get_or_add_pPr()
-    lnSpc = _et.SubElement(pPr, qn('a:lnSpc'))
-    spcPct = _et.SubElement(lnSpc, qn('a:spcPct'))
-    spcPct.set('val', str(int(spacing * 100000)))
-    r = p.add_run(); r.text = text
-    r.font.size = _Pt(size); r.font.bold = bold; r.font.italic = italic
-    if color:
-        r.font.color.rgb = color
+
+    if align is None:
+        align = PP_ALIGN.LEFT
+
+    tb = sl.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = tb.text_frame
+    tf.word_wrap = True
+
+    def _apply_para(p, line_text):
+        """1段落を設定する共通処理"""
+        p.alignment = align
+        pPr = p._p.get_or_add_pPr()
+        lnSpc = _et.SubElement(pPr, qn('a:lnSpc'))
+        spcPct = _et.SubElement(lnSpc, qn('a:spcPct'))
+        spcPct.set('val', str(int(spacing * 100000)))
+        r = p.add_run()
+        r.text = line_text
+        r.font.size = _Pt(size)
+        r.font.bold = bold
+        r.font.italic = italic
+        if color:
+            r.font.color.rgb = color
+
+    segments = str(text).split('\n')
+    # 最初の段落は tf.paragraphs[0] を使う
+    _apply_para(tf.paragraphs[0], segments[0])
+    # 2行目以降は add_paragraph()
+    for seg in segments[1:]:
+        _apply_para(tf.add_paragraph(), seg)
 
 def _rc(sl, l, t, w, h, fill, line=None, lw=None):
     s = sl.shapes.add_shape(
@@ -961,7 +1180,8 @@ def _sl_title(prs, today: str) -> None:
     sep.line.fill.background()
     _tb(sl,
         "向平 友治 様\n"
-        "確認・承認済みの情報を「課題 → 対応 → 結果」の構造で整理しました。",
+        "確認・承認済みの情報を「いつ / どんなことをやったか / 結果 / 共有トピック」\n"
+        "の4ブロック構成で施策スライドとして整理しました。",
         0.52, 4.0, 8.8, 1.7, 14, color=PC["white"], spacing=1.6)
     _tb(sl, f"生成日時: {today}", 0.52, 6.85, 9.0, 0.38, 10, color=PC["muted"])
 
@@ -1066,38 +1286,639 @@ def _sl_detail(prs, cd: CatDef, items: list) -> None:
     _tb(sl, f"全 {len(items)} 件 | 生成: {datetime.now().strftime('%Y/%m/%d')}",
         0.50, 7.12, 9.0, 0.28, 9, color=PC["muted"], align=PP_ALIGN.RIGHT)
 
-def build_pptx(sel: dict, today: str) -> bytes:
-    """選択済みアイテムから PPTX を生成して bytes で返す。"""
+def _analyze_items(sel: dict) -> list[dict]:
+    """
+    ビジネスアナリスト機能 v18 — 高品質施策構造化エンジン
+
+    既存の sel dict（課題 / 対応 / 結果）を受け取り、
+    利用者が必要とする 4 項目フォーマット配列に変換して返す。
+
+    v18 改善点:
+      1. 「対応のみ」時も対応ごとに1施策として分割（全部1まとめを解消）
+      2. 施策タイトルを「動詞句＋目的語」形式で自動生成（より意味のある名前）
+      3. share_topic を「再利用できる知見」として価値向上
+         — 成功手順・失敗パターン・継続中の進捗を区別して記述
+      4. 日付の信頼度を3段階（確実/推測/不明）で管理
+      5. action_lines に元テキストのコンテキストを補完
+      6. result_lines が空のとき eval を根拠として補完
+
+    出力 list[dict] の各要素:
+      date        : いつ（実施時期。不明なら "不明"）
+      date_conf   : high / inferred / unknown（日付の確実性）
+      title       : 施策名（動詞句形式）
+      action_lines: どんなことをやったか（箇条書きリスト、最大6件）
+      result_lines: 結果はどうだったか（箇条書きリスト、最大4件）
+      kpi         : 数値実績（なければ "定量結果なし"）
+      eval        : 成功 / 失敗 / 継続中 / 不明
+      eval_basis  : 評価の根拠
+      share_topic : 社内共有トピック（再利用可能な知見、3部構成）
+      source_hint : 出典ファイル名
+    """
+    # ── 日付パターン（優先度順） ───────────────────────────
+    DATE_EXACT = re.compile(          # 確実な日付（年月日・YYYY/MM/DD）
+        r"\d{4}[年/\-]\d{1,2}[月/\-]\d{1,2}[日]?"
+        r"|\d{4}/\d{2}/\d{2}",
+        re.UNICODE,
+    )
+    DATE_APPROX = re.compile(         # 推測できる日付
+        r"\d{1,2}月第\d週"
+        r"|\d{1,2}[月/\-]\d{1,2}[日]?"
+        r"|\d+月期|上半期|下半期"
+        r"|Q[1-4]|第[1-4]四半期",
+        re.UNICODE,
+    )
+    DATE_RELATIVE = re.compile(       # 相対表現
+        r"今月|先月|今週|先週|先日|今期|前期",
+        re.UNICODE,
+    )
+
+    # ── 評価キーワード ─────────────────────────────────────
+    OK_KW  = ["達成","完了","解決","改善","削減","向上","増加","成功",
+              "実現","完成","対応済","クリア","前年比","前月比",
+              "超過達成","黒字","回収","ゼロ件","0件","100%","▲0","減少"]
+    NG_KW  = ["未達","失敗","遅延","中断","停止","断念",
+              "悪化","炎上","撤退","未解決","赤字","損失","低下"]
+    ING_KW = ["検討","調整","協議","継続","対応中","調査中",
+              "準備中","進行中","実施中","調整中","予定","予定している"]
+
+    issues  = sel.get("課題", [])
+    actions = sel.get("対応", [])
+    results = sel.get("結果", [])
+
+    # ── ヘルパー ───────────────────────────────────────────
+
+    def _when(pool):
+        """
+        全アイテムから日付を検索。確実→推測→相対 の優先順で返す。
+        戻り値: (date_str, confidence)  confidence: "high"/"inferred"/"unknown"
+        """
+        for it in pool:
+            for text in [it.get("original",""), it.get("short","")]:
+                m = DATE_EXACT.search(text)
+                if m:
+                    return m.group(0), "high"
+        for it in pool:
+            for text in [it.get("original",""), it.get("short","")]:
+                m = DATE_APPROX.search(text)
+                if m:
+                    return m.group(0), "inferred"
+        for it in pool:
+            for text in [it.get("original",""), it.get("short","")]:
+                m = DATE_RELATIVE.search(text)
+                if m:
+                    return m.group(0), "inferred"
+        return "不明", "unknown"
+
+    def _eval_with_basis(pool):
+        """評価（成功/失敗/継続中/不明）と根拠をタプルで返す"""
+        t = " ".join(it.get("short","") + " " + it.get("original","") for it in pool)
+        has_n = any(has_num(it.get("short","")) or has_num(it.get("original",""))
+                    for it in pool)
+        for k in NG_KW:
+            if k in t:
+                return "失敗", "「{}」等の否定的表現を検出".format(k)
+        for k in OK_KW:
+            if k in t:
+                sfx = "（定量根拠あり）" if has_n else "（定量根拠なし）"
+                return "成功", "「{}」の達成表現{}を検出".format(k, sfx)
+        for k in ING_KW:
+            if k in t:
+                return "継続中", "「{}」等の進行中表現を検出".format(k)
+        return "不明", "評価キーワードが検出されませんでした"
+
+    def _kpi(pool):
+        """数値を含む短文を最大4件、改行区切り文字列で返す"""
+        nums = [it["short"] for it in pool
+                if has_num(it.get("short","")) or has_num(it.get("original",""))]
+        return "\n".join("・" + n for n in nums[:4]) if nums else "定量結果なし"
+
+    def _match_score(anchor, cand):
+        """漢字2文字以上の共通語数（テキスト類似度スコア）"""
+        a = set(re.findall(r"[\u4e00-\u9fff]{2,}", anchor.get("original","")))
+        b = set(re.findall(r"[\u4e00-\u9fff]{2,}", cand.get("original","")))
+        return len(a & b)
+
+    def _related(anchor, pool, top_n=4):
+        """anchor に最も関連するアイテムを pool から top_n 件返す"""
+        if not pool:
+            return []
+        scored = sorted(pool, key=lambda x: _match_score(anchor, x), reverse=True)
+        return scored[:top_n]
+
+    def _sources(pool):
+        """出典ファイル名（重複なし・最大3件）"""
+        seen, out = set(), []
+        for it in pool:
+            base = re.split(r"[ \u30b9\u30e9\u30a4\u30c9\u884c\u30b7\u30fc\u30c8]",
+                            it.get("source",""))[0]
+            if base and base not in seen:
+                seen.add(base); out.append(base)
+        return out[:3]
+
+    def _make_title(act_list, iss_item=None):
+        """
+        施策タイトルを生成する。
+        優先順: 対応の主動詞句 → 課題の短縮形 → デフォルト
+        """
+        if act_list:
+            cand = act_list[0].get("short","")
+            # 「○○を実施」「○○の改善」「○○の導入」形式に整える
+            if len(cand) > 54:
+                # 自然な区切りで切断
+                for sep in ["。","、","を","の","に","で","が"]:
+                    idx = cand[:50].rfind(sep)
+                    if idx > 15:
+                        return cand[:idx+1]
+                return cand[:50] + "…"
+            return cand
+        if iss_item:
+            cand = iss_item.get("short","")
+            return ("【課題対応】" + cand[:44]) if len(cand) > 0 else "施策情報なし"
+        return "施策情報なし"
+
+    def _action_lines_from(act_list, iss_item=None):
+        """
+        action_lines を生成する。
+        対応テキストを優先し、なければ課題テキストと元テキストのコンテキストを補完。
+        """
+        if act_list:
+            lines = [a["short"] for a in act_list[:6]]
+            # 対応の元テキストに追加コンテキストがあれば補完
+            for a in act_list[:2]:
+                orig = a.get("original","")
+                short = a.get("short","")
+                if len(orig) > len(short) + 20:
+                    extra = orig[len(short):].strip().lstrip("。、").strip()
+                    if extra and len(extra) > 10:
+                        lines.append("　↳ " + extra[:50] + ("…" if len(extra)>50 else ""))
+            return lines
+        if iss_item:
+            lines = [iss_item["short"]]
+            orig = iss_item.get("original","")
+            if len(orig) > len(iss_item["short"]) + 15:
+                lines.append("詳細: " + orig[:68] + ("…" if len(orig)>68 else ""))
+            return lines
+        return ["（施策情報なし）"]
+
+    def _result_lines_from(res_list, ev, ev_basis):
+        """
+        result_lines を生成する。
+        結果アイテムがなくても評価根拠を補完して空にしない。
+        """
+        if res_list:
+            return [r["short"] for r in res_list[:4]]
+        # 結果がない場合: 評価から補完
+        if ev == "成功":
+            return ["成功と評価（{}）".format(ev_basis), "※ 定量データが未記録です"]
+        elif ev == "失敗":
+            return ["課題が未解決（{}）".format(ev_basis), "※ 改善策の記録を推奨します"]
+        elif ev == "継続中":
+            return ["現在対応中（{}）".format(ev_basis), "※ 次月報告で結果を記録してください"]
+        return ["定量結果なし", "※ 結果データが見つかりませんでした"]
+
+    def _share_topic(iss_list, act_list, res_list, ev, ev_basis, date_str):
+        """
+        社内共有トピックを生成する — v18 高品質版。
+
+        「誰かが同じ状況に直面したときに役立つ情報」を意識して記述する。
+        構成: 【背景】何があったか → 【手順】何をしたか → 【知見】次に活かせること
+        """
+        parts = []
+
+        # ── 【背景】何があったか ──────────────────────────
+        bg_parts = []
+        if iss_list:
+            bg_parts.append("「{}」が発生".format(iss_list[0].get("short","")[:28]))
+        if date_str and date_str != "不明":
+            bg_parts.append("実施時期: {}".format(date_str))
+        if bg_parts:
+            parts.append("【背景】" + "、".join(bg_parts))
+        elif act_list:
+            parts.append("【背景】課題記録なし（対応記録のみ）")
+
+        # ── 【手順】何をしたか ────────────────────────────
+        if act_list:
+            act_summary = "→".join(a.get("short","")[:20] for a in act_list[:3])
+            parts.append("【手順】{}".format(act_summary))
+
+        # ── 【知見】次に活かせること ──────────────────────
+        if ev == "成功":
+            kv_parts = []
+            if res_list:
+                kv_parts.append("成果: {}".format(res_list[0].get("short","")[:32]))
+            if act_list:
+                kv_parts.append("同種の課題に同手順が有効（横展開推奨）")
+            if has_num_in_list(res_list):
+                kv_parts.append("定量成果あり・ベンチマークとして活用可")
+            parts.append("【知見】" + "。".join(kv_parts) if kv_parts else "【知見】成功事例として記録")
+        elif ev == "失敗":
+            parts.append("【知見】{}。同パターンの再発防止策を整備すること".format(ev_basis))
+        elif ev == "継続中":
+            ongoing = act_list[-1].get("short","")[:28] if act_list else "対応中"
+            parts.append("【知見】現在「{}」を継続中。進捗を数値で追うこと".format(ongoing))
+        else:
+            parts.append("【知見】評価・数値ともに未記録。次回から成果を定量で記録すること")
+
+        return " ".join(parts) if parts else "情報不足のため知見を生成できませんでした"
+
+    def has_num_in_list(items):
+        return any(has_num(it.get("short","")) or has_num(it.get("original","")) for it in items)
+
+    # ── 施策の構造化 ─────────────────────────────────────
+
+    strategies = []
+
+    if issues:
+        # ── パターン①: 課題起点（1課題=1施策）─────────────
+        for iss in issues:
+            rel_act = _related(iss, actions, top_n=4)
+            rel_res = _related(iss, results, top_n=4)
+            ev, ev_basis = _eval_with_basis(rel_res or rel_act or [iss])
+            pool_all = [iss] + rel_act + rel_res
+            srcs = _sources(pool_all)
+            date_str, date_conf = _when(pool_all)
+
+            strategies.append(dict(
+                date         = date_str,
+                date_conf    = date_conf,
+                title        = _make_title(rel_act, iss),
+                action_lines = _action_lines_from(rel_act, iss),
+                result_lines = _result_lines_from(rel_res, ev, ev_basis),
+                kpi          = _kpi(rel_res),
+                eval         = ev,
+                eval_basis   = ev_basis,
+                share_topic  = _share_topic([iss], rel_act, rel_res, ev, ev_basis, date_str),
+                source_hint  = " / ".join(srcs) if srcs else "不明",
+            ))
+
+    elif actions:
+        # ── パターン②: 対応起点（課題なし）─────────────────
+        # v18改善: 対応を1件ずつ独立した施策として分割する
+        # ただし、テキスト類似度が高い対応同士はグループ化する
+        used_actions: set = set()
+
+        for i, act in enumerate(actions):
+            if id(act) in used_actions:
+                continue
+
+            # 類似する対応をグループ化（同一施策の構成要素として扱う）
+            group_acts = [act]
+            used_actions.add(id(act))
+            for other in actions[i+1:]:
+                if id(other) not in used_actions and _match_score(act, other) >= 2:
+                    group_acts.append(other)
+                    used_actions.add(id(other))
+                    if len(group_acts) >= 4:
+                        break
+
+            # グループに対応する結果を紐付け
+            rel_res = _related(act, results, top_n=3)
+
+            ev, ev_basis = _eval_with_basis(rel_res or group_acts)
+            pool_all = group_acts + rel_res
+            srcs = _sources(pool_all)
+            date_str, date_conf = _when(pool_all)
+
+            strategies.append(dict(
+                date         = date_str,
+                date_conf    = date_conf,
+                title        = _make_title(group_acts),
+                action_lines = _action_lines_from(group_acts),
+                result_lines = _result_lines_from(rel_res, ev, ev_basis),
+                kpi          = _kpi(rel_res),
+                eval         = ev,
+                eval_basis   = ev_basis,
+                share_topic  = _share_topic([], group_acts, rel_res, ev, ev_basis, date_str),
+                source_hint  = " / ".join(srcs) if srcs else "不明",
+            ))
+
+    else:
+        # ── パターン③: 結果のみ ────────────────────────────
+        ev, ev_basis = _eval_with_basis(results)
+        srcs = _sources(results)
+        date_str, date_conf = _when(results)
+        result_lines = [r["short"] for r in results[:4]] or ["定量結果なし"]
+        title = results[0]["short"][:54] if results else "施策情報なし"
+
+        # 結果から逆引きで施策を推測
+        inferred_action = []
+        for r in results[:2]:
+            orig = r.get("original","")
+            # 「○○により」「○○の結果」のような原因句を探す
+            m = re.search(r"(.{4,20})[にによりの結果として]", orig)
+            if m:
+                inferred_action.append("（推測）" + m.group(1))
+
+        strategies.append(dict(
+            date         = date_str,
+            date_conf    = date_conf,
+            title        = title,
+            action_lines = inferred_action or ["（施策情報が記録されていません）"],
+            result_lines = result_lines,
+            kpi          = _kpi(results),
+            eval         = ev,
+            eval_basis   = ev_basis,
+            share_topic  = "結果データのみが記録されています。次回から施策情報も記録することを推奨します。（{}）".format(ev_basis),
+            source_hint  = " / ".join(srcs) if srcs else "不明",
+        ))
+
+    # 施策数が0になるケースを防ぐ
+    if not strategies:
+        strategies.append(dict(
+            date         = "不明",
+            date_conf    = "unknown",
+            title        = "データなし",
+            action_lines = ["採用された項目がありません"],
+            result_lines = ["定量結果なし"],
+            kpi          = "定量結果なし",
+            eval         = "不明",
+            eval_basis   = "データなし",
+            share_topic  = "ファイルから情報を抽出できませんでした。ファイル形式や内容を確認してください。",
+            source_hint  = "不明",
+        ))
+
+    return strategies
+
+def _sl_strategy(prs, strat: dict, idx: int, total: int) -> None:
+    """
+    施策1件=1スライド — v18 高品質4ブロック縦積みレイアウト
+
+    ブロック構成（上から順に）:
+      [A] タイトルバー        施策名 + 施策番号
+      [B] メタ行              🕐 いつ（日付信頼度表示） / 📁 出典
+      [C] 本文2列             📋 どんなことをやったか | 📊 結果・評価
+      [D] 共有トピック帯      💡 社内共有トピック（背景→手順→知見）
+
+    v18改善:
+      - date_conf に応じた日付表示（確実/推測/不明 で色を変える）
+      - action_lines の「↳」コンテキスト行を小フォントで区別表示
+      - 評価バッジのサイズ・余白を最適化
+      - 共有トピックの【背景】【手順】【知見】を視覚的に強調
+    """
+    sl = prs.slides.add_slide(prs.slide_layouts[6])
+    _bg(sl, PC["white"]); _logo(sl)
+
+    # ── [A] タイトルバー ──────────────────────────────────
+    HDR_H = 1.05
+    _rc(sl, 0, 0, 10, HDR_H, PC["navy"])
+    _rc(sl, 0, 0, 0.18, HDR_H, PC["red"])
+
+    _tb(sl, "施策 {} / {}".format(idx, total),
+        0.28, 0.06, 3.0, 0.24, 8, color=PC["muted"])
+
+    title = strat.get("title", "施策情報なし")
+    # タイトルを2行に自動折り返し（長い場合）
+    if len(title) > 36:
+        # 自然な区切りで折り返す
+        for sep in ["を","の","に","で","が","、"]:
+            idx_sep = title[:36].rfind(sep)
+            if idx_sep > 12:
+                title = title[:idx_sep+1] + "\n" + title[idx_sep+1:]
+                break
+    _tb(sl, title[:80], 0.28, 0.26, 9.1, 0.68, 19,
+        bold=True, color=PC["white"], spacing=1.25)
+
+    # ── [B] メタ行（いつ / 出典）─────────────────────────
+    META_Y = HDR_H
+    META_H = 0.38
+    _rc(sl, 0, META_Y, 10, META_H, RGBColor(0xED, 0xF2, 0xF8))
+
+    date_str  = strat.get("date", "不明")
+    date_conf = strat.get("date_conf", "unknown")
+    # 日付信頼度を色で表現
+    date_color = {
+        "high":     PC["grn"],    # 確実（緑）
+        "inferred": PC["amb"],    # 推測（アンバー）
+        "unknown":  PC["muted"],  # 不明（グレー）
+    }.get(date_conf, PC["muted"])
+    # 推測の場合は「（推測）」を付記
+    date_disp = date_str if date_conf == "high" else (
+        "{}（推測）".format(date_str) if date_conf == "inferred" else "不明"
+    )
+    _tb(sl, "🕐 " + date_disp,
+        0.28, META_Y + 0.08, 5.0, 0.22, 10,
+        bold=False, color=date_color)
+
+    hint = strat.get("source_hint", "不明")
+    _tb(sl, "📁 " + hint,
+        5.40, META_Y + 0.08, 4.3, 0.22, 10,
+        italic=True, color=PC["muted"])
+
+    # 赤ライン（メタ行とボディの区切り）
+    sep_line = sl.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(0.28), Inches(META_Y + META_H), Inches(9.44), Inches(0.014))
+    sep_line.fill.solid(); sep_line.fill.fore_color.rgb = PC["red"]
+    sep_line.line.fill.background()
+
+    # ── [C] 本文エリア（2列）──────────────────────────────
+    BODY_Y = META_Y + META_H + 0.015
+    BODY_H = 3.80
+    LW = 5.60      # 左列幅（どんなことをやったか）
+    RX = 6.04      # 右列X（結果・評価）
+    RW = 3.68      # 右列幅
+
+    # ─ 左列: どんなことをやったか ─
+    _rc(sl, 0.28, BODY_Y, LW, 0.32, PC["navy_lt"])
+    _tb(sl, "📋  どんなことをやったか",
+        0.36, BODY_Y + 0.05, LW - 0.10, 0.24, 9,
+        bold=True, color=PC["white"])
+    _rc(sl, 0.28, BODY_Y + 0.32, LW, BODY_H - 0.32,
+        RGBColor(0xF5, 0xF8, 0xFD), line=PC["navy_lt"], lw=0.5)
+
+    act_lines = strat.get("action_lines", [])
+    # 「↳」で始まる補足行は小さいフォントで表示（コンテキスト情報）
+    # まず通常行と補足行を分離して結合
+    act_parts = []
+    for line in act_lines[:7]:
+        if line.startswith("　↳"):
+            act_parts.append(line)          # 補足行（フォントは後の_tbで同一になるが視覚的に区別）
+        else:
+            act_parts.append("・" + line)
+    act_body = "\n".join(act_parts) if act_parts else "（情報なし）"
+    _tb(sl, act_body,
+        0.36, BODY_Y + 0.40, LW - 0.16, BODY_H - 0.54,
+        11, color=PC["body"], spacing=1.65)
+
+    # ─ 右列: 結果はどうだったか ─
+    _rc(sl, RX, BODY_Y, RW, 0.32, PC["grn"])
+    _tb(sl, "📊  結果はどうだったか",
+        RX + 0.10, BODY_Y + 0.05, RW - 0.12, 0.24, 9,
+        bold=True, color=PC["white"])
+    _rc(sl, RX, BODY_Y + 0.32, RW, BODY_H - 0.32,
+        RGBColor(0xF5, 0xFD, 0xF8), line=PC["grn"], lw=0.5)
+
+    EV_ICON = {"成功": "✅", "失敗": "❌", "継続中": "🔄", "不明": "❓"}
+    EV_BG   = {
+        "成功":   RGBColor(0xD1, 0xFA, 0xE5),
+        "失敗":   RGBColor(0xFF, 0xE4, 0xE6),
+        "継続中": RGBColor(0xFF, 0xF3, 0xCD),
+        "不明":   RGBColor(0xF1, 0xF3, 0xF6),
+    }
+    EV_TXT = {
+        "成功":   PC["grn"],
+        "失敗":   PC["red"],
+        "継続中": PC["amb"],
+        "不明":   PC["muted"],
+    }
+    ev_txt   = strat.get("eval", "不明")
+    ev_icon  = EV_ICON.get(ev_txt, "❓")
+    ev_bg    = EV_BG.get(ev_txt, RGBColor(0xF1, 0xF3, 0xF6))
+    ev_color = EV_TXT.get(ev_txt, PC["muted"])
+
+    # 評価バッジ（高さを広げて文字を大きく）
+    _rc(sl, RX + 0.10, BODY_Y + 0.40, RW - 0.20, 0.58, ev_bg)
+    _tb(sl, "{} {}".format(ev_icon, ev_txt),
+        RX + 0.18, BODY_Y + 0.44, RW - 0.36, 0.46,
+        15, bold=True, color=ev_color)
+
+    # 評価根拠
+    ev_basis = strat.get("eval_basis", "根拠不明")
+    _tb(sl, ev_basis[:52],
+        RX + 0.12, BODY_Y + 1.06, RW - 0.24, 0.28,
+        8, italic=True, color=PC["muted"])
+
+    # 「数値実績」ラベルバー
+    _rc(sl, RX + 0.10, BODY_Y + 1.40, RW - 0.20, 0.24,
+        PC["blu"])
+    _tb(sl, "数値実績",
+        RX + 0.18, BODY_Y + 1.42, RW - 0.36, 0.20,
+        8, bold=True, color=PC["white"])
+
+    # 結果箇条書き（result_lines と kpi を統合表示）
+    res_lines = strat.get("result_lines", [])
+    res_body  = "\n".join("・" + t for t in res_lines[:4]) if res_lines else "定量結果なし"
+    kpi_text  = strat.get("kpi", "定量結果なし")
+    disp_res  = res_body
+    if (kpi_text and kpi_text != "定量結果なし"
+            and kpi_text.replace("\n","") not in res_body.replace("\n","")):
+        disp_res = disp_res + "\n" + kpi_text
+    _tb(sl, disp_res,
+        RX + 0.12, BODY_Y + 1.70, RW - 0.24, BODY_H - 1.86,
+        10, color=PC["body"], spacing=1.55)
+
+    # ── [D] 社内共有トピック（全幅フッター帯）──────────────
+    KNOW_Y = BODY_Y + BODY_H + 0.06
+    KNOW_H = 1.06
+    _rc(sl, 0.28, KNOW_Y, 9.44, KNOW_H,
+        RGBColor(0xED, 0xF0, 0xFF), line=RGBColor(0x63, 0x74, 0xBB), lw=0.6)
+
+    # ラベルバッジ（左端）
+    _rc(sl, 0.28, KNOW_Y, 2.30, 0.26, RGBColor(0x1E, 0x3A, 0x8A))
+    _tb(sl, "💡 社内共有トピック",
+        0.36, KNOW_Y + 0.03, 2.20, 0.22, 8,
+        bold=True, color=PC["white"])
+
+    # 本文（【背景】【手順】【知見】の3部構成テキスト）
+    share = strat.get("share_topic", "不明")
+    # 3部構成の区切りを改行に変換して可読性を上げる
+    share_disp = share.replace(" 【手順】", "\n【手順】").replace(" 【知見】", "\n【知見】")
+    _tb(sl, share_disp, 0.36, KNOW_Y + 0.30, 9.26, KNOW_H - 0.36,
+        9, color=PC["body"], spacing=1.38)
+
+    # フッター右端（生成日時）
+    _tb(sl, "生成: " + datetime.now().strftime("%Y/%m/%d"),
+        0.28, 7.24, 9.44, 0.18, 8,
+        color=PC["muted"], align=PP_ALIGN.RIGHT)
+
+def _editable_to_strat(es: dict) -> dict:
+    """
+    確認画面で編集した editable_strategy（action_text/result_text/share_text）を
+    _sl_strategy が受け取れる形式（action_lines/result_lines/share_topic）に変換する。
+    """
+    def _split(text: str) -> list:
+        """改行区切りテキストを非空行リストに変換"""
+        return [l.strip().lstrip("・").strip()
+                for l in text.splitlines() if l.strip()]
+
+    action_lines = _split(es.get("action_text", ""))
+    result_lines = _split(es.get("result_text", ""))
+    share_topic  = es.get("share_text", "").strip()
+
+    return {
+        "title":        es.get("title", "施策情報なし"),
+        "date":         es.get("date", "不明"),
+        "date_conf":    es.get("date_conf", "unknown"),
+        "action_lines": action_lines or ["（施策情報なし）"],
+        "result_lines": result_lines or ["定量結果なし"],
+        "kpi":          es.get("kpi", "定量結果なし"),
+        "eval":         es.get("eval", "不明"),
+        "eval_basis":   es.get("eval_basis", ""),
+        "share_topic":  share_topic or "情報なし",
+        "source_hint":  es.get("source_hint", "不明"),
+    }
+
+
+def _build_pptx_from_strategies(
+    editable_strategies: list[dict],
+    sel: dict,
+    today: str,
+) -> bytes:
+    """
+    確認画面で編集済みの editable_strategies を使って PPTX を生成する。
+
+    v19 の核心機能:
+      - 施策カードのテキスト（いつ/施策内容/結果/共有トピック）が
+        確認画面での編集をそのまま反映する
+      - 除外フラグが立った施策は渡されないので自動スキップ済み
+      - 補足資料（サマリー/フロー/数値/詳細）は sel から生成
+    """
     prs = Presentation()
     prs.slide_width  = Inches(10)
     prs.slide_height = Inches(7.5)
     all_items = [it for items in sel.values() for it in items]
+
+    # [1] タイトル
     _sl_title(prs, today)
+
+    # [2] 施策スライド（編集済み内容を直接使用）
+    n = len(editable_strategies)
+    for si, es in enumerate(editable_strategies, 1):
+        strat = _editable_to_strat(es)
+        _sl_strategy(prs, strat, si, n)
+
+    # [3] 補足資料（従来通り sel から生成）
     _sl_summary(prs, sel)
     _sl_flow(prs, sel)
     _sl_numbers(prs, all_items)
     for cd in CAT_DEFS:
         _sl_detail(prs, cd, sel.get(cd.name, []))
+
     buf = io.BytesIO(); prs.save(buf)
     return buf.getvalue()
 
 
+def build_pptx(sel: dict, today: str) -> bytes:
+    """
+    PPTX 生成 v16 — スライド順序を要件定義に合わせる
 
-# UI フェーズの定数
-PHASE_UPLOAD  = "upload"
-PHASE_REVIEW  = "review"
-PHASE_EDIT    = "edit"
-PHASE_CONFIRM = "confirm"
+    順序:
+      [1] タイトルスライド
+      [2] 施策スライド群（1施策=1スライド）← 先頭に配置
+      [3] 補足資料（サマリー / フロー / 数値 / 詳細別）
+    """
+    prs = Presentation()
+    prs.slide_width  = Inches(10)
+    prs.slide_height = Inches(7.5)
+    all_items = [it for items in sel.values() for it in items]
 
-# 「確認が必要」なアイテムの信頼度しきい値
-# CONF_TH は LAYER 5 で定義済み（0.52）
+    # [1] タイトル
+    _sl_title(prs, today)
 
-VOL = {"少（上位8件）": 8, "中（上位15件）": 15, "多（全件）": 999}
+    # [2] 施策スライド（意思決定者が最初に確認するページ群）
+    strategies = _analyze_items(sel)
+    for _si, _strat in enumerate(strategies, 1):
+        _sl_strategy(prs, _strat, _si, len(strategies))
 
+    # [3] 補足資料
+    _sl_summary(prs, sel)
+    _sl_flow(prs, sel)
+    _sl_numbers(prs, all_items)
+    for cd in CAT_DEFS:
+        _sl_detail(prs, cd, sel.get(cd.name, []))
 
-# ------------------------------------------------------------------------------
-# 共通コンポーネント
-# ------------------------------------------------------------------------------
+    buf = io.BytesIO(); prs.save(buf)
+    return buf.getvalue()
 
 def render_header(phase: str) -> None:
     """
@@ -1159,52 +1980,6 @@ def render_footer() -> None:
 # ------------------------------------------------------------------------------
 # UPLOAD 画面
 # ------------------------------------------------------------------------------
-
-def extract(uploaded_files) -> list[dict]:
-    """
-    複数ファイルからアイテムを抽出し、スコアリング・ソートして返す。
-    ノイズ除去 → 短縮 → 分類 → 因果ボーナス → 信頼度計算 の順。
-    ※ この関数が依存する _rd_pptx / shorten / classify / has_num /
-      is_noise / calc_confidence / _attach_causal_bonus / HIGH_KW は
-      すべてこのファイルの下方（LAYER 5〜6）で定義されているが、
-      Pythonは関数本体を「呼び出し時」に評価するため問題ない。
-      ただし呼び出し元の render_upload_screen より前にこの def が
-      必要なため、ここに配置する。
-    """
-    # READERS辞書を使わず都度呼び出す（定義順序問題を回避するため）
-    SUPPORTED = {".pptx", ".xlsx", ".pdf", ".txt"}
-    all_items: list[dict] = []
-
-    for uf in uploaded_files:
-        ext = Path(uf.name).suffix.lower()
-        if ext not in SUPPORTED:
-            continue
-        fb = uf.read()
-        if   ext == ".pptx": raw = _rd_pptx(fb, uf.name)
-        elif ext == ".xlsx": raw = _rd_xlsx(fb, uf.name)
-        elif ext == ".pdf":  raw = _rd_pdf(fb, uf.name)
-        elif ext == ".txt":  raw = _rd_txt(fb, uf.name)
-        else:                continue
-        for it in raw:
-            orig = it["original"]
-            it["short"]    = shorten(orig)
-            it["category"] = classify(orig)
-            it["score"]    = (
-                sum(10 for kw in HIGH_KW if kw in orig)
-                + (5 if has_num(orig) else 0)
-                + (2 if len(orig) < 80 else 0)
-            )
-            it["causal_bonus"] = False  # 後で _attach_causal_bonus が設定
-        raw = [it for it in raw if not is_noise(it["short"])]
-        all_items.extend(raw)
-
-    # 因果ボーナスを付与してから信頼度を計算
-    _attach_causal_bonus(all_items)
-    for it in all_items:
-        it["confidence"] = calc_confidence(it)
-
-    return sorted(all_items, key=lambda x: x["score"], reverse=True)
-
 
 def render_upload_screen() -> None:
     """
@@ -1405,6 +2180,22 @@ def render_review_screen() -> None:
     _render_counter(by_cat_limited)
 
     # ── 3列一覧 ──
+    # スライドへの対応関係ガイド
+    st.markdown(
+        '<div class="wn" style="padding-top:0;padding-bottom:6px;">'
+        '<div style="background:rgba(30,58,138,.08);border:1px solid rgba(30,58,138,.22);'
+        'border-left:3px solid var(--blu-l);border-radius:var(--r-sm);padding:8px 13px;'
+        'font-size:11px;color:var(--blu-l);line-height:1.7;">'
+        '\U0001f4cc <strong>\u63a1\u7528\u3057\u305f\u9805\u76ee\u306f\u6b21\u306e\u753b\u9762\u3067\u30b9\u30e9\u30a4\u30c9\u306b\u5909\u63db\u3055\u308c\u307e\u3059</strong> \u2015\u2015 '
+        '\u26a0\ufe0f\u8ab2\u984c\xe0\xb9\x86 <em>\u80cc\u666f\u30fb\u72b6\u6cc1</em>\u3001'
+        '\U0001f6e0\u5bfe\u5fdc\xe0\xb9\x86 <em>\u3069\u3093\u306a\u3053\u3068\u3092\u3084\u3063\u305f\u304b</em>\u3001'
+        '\U0001f4ca\u7d50\u679c\xe0\xb9\x86 <em>\u7d50\u679c\u30fb\u6570\u5024</em>\xe3\x80\x80'
+        '\u306b\u5bfe\u5fdc\u3057\u307e\u3059\u3002'
+        '\u78ba\u8a8d\u753b\u9762\u3067\u5185\u5bb9\u3092\u76f4\u63a5\u7de8\u96c6\u3067\u304d\u308b\u306e\u3067\u3001\u3053\u3053\u3067\u306f\u5927\u307e\u304b\u306a\u63a1\u5426\u3060\u3051\u6c7a\u3081\u3066\u304f\u3060\u3055\u3044\u3002'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+
     cat_css = {"課題": "issue", "対応": "action", "結果": "result"}
     st.markdown('<div class="ww">', unsafe_allow_html=True)
     col_i, col_a, col_r = st.columns([1, 1, 1])
@@ -1421,7 +2212,12 @@ def render_review_screen() -> None:
         )
 
         with col:
-            # カテゴリヘッダー
+            # カテゴリヘッダー（スライド対応ラベルを副題に表示）
+            slide_role = {
+                "課題": "\u2192 \u80cc\u666f\u30fb\u72b6\u6cc1\u3068\u3057\u3066\u4f7f\u7528",
+                "対応": "\u2192 \u65bd\u7b56\u5185\u5bb9\u3068\u3057\u3066\u4f7f\u7528",
+                "結果": "\u2192 \u7d50\u679c\u30fb\u6570\u5024\u3068\u3057\u3066\u4f7f\u7528",
+            }
             st.markdown(
                 f'<div class="cat-hdr {cat_css[cat]}">'
                 f'<div class="cat-hdr-left">'
@@ -1431,7 +2227,10 @@ def render_review_screen() -> None:
                 f'<div class="cat-hdr-q">{cd.question}</div>'
                 f'</div></div>'
                 f'<span class="cat-hdr-cnt">{sel_cnt} / {len(items_cat)}</span>'
-                f'</div>',
+                f'</div>'
+                f'<div style="font-size:9px;color:var(--t3);padding:3px 10px 5px;'
+                f'background:var(--bg2);border:1px solid var(--b0);border-top:none;">'
+                f'{slide_role[cat]}</div>',
                 unsafe_allow_html=True,
             )
 
@@ -1808,226 +2607,485 @@ def render_edit_screen() -> None:
 # CONFIRM 画面 — プレビュー・スコア・ダウンロード
 # ------------------------------------------------------------------------------
 
-def render_completeness_score(sel: dict) -> None:
+def render_completeness_score(
+    sel: dict | None = None,
+    editable_strategies: list | None = None,
+    active_only: bool = False,
+) -> None:
     """
-    報告品質スコアパネル（3軸評価）。
-    CONFIRM 画面専用。
+    報告品質スコアパネル v19 — editable_strategies対応版。
+
+    呼び出し方:
+      - 確認画面（編集後）: render_completeness_score(editable_strategies=strats)
+      - それ以外:            render_completeness_score(sel=selected)
+
+    3軸評価:
+      [1] 数値の充実度  : result_text / kpi に数字が含まれる施策の割合
+      [2] 内容の網羅性  : date / action_text / result_text が揃っている施策の割合
+      [3] 共有トピックの質: share_text が記入されている施策の割合
     """
-    issue  = len(sel.get("課題", []))
-    action = len(sel.get("対応", []))
-    result = len(sel.get("結果", []))
-    total  = issue + action + result
-    if total == 0:
+    # ── データ準備 ────────────────────────────────────────
+    if editable_strategies is not None:
+        strats = editable_strategies
+    elif sel is not None:
+        raw_strats = _analyze_items(sel)
+        # _analyze_items の出力を editable 形式に変換
+        strats = [
+            {
+                "title":        s["title"],
+                "date":         s["date"],
+                "action_text":  "\n".join(s.get("action_lines", [])),
+                "result_text":  "\n".join(s.get("result_lines", [])),
+                "share_text":   s.get("share_topic", ""),
+                "eval":         s.get("eval", "不明"),
+                "kpi":          s.get("kpi", "定量結果なし"),
+            }
+            for s in raw_strats
+        ]
+    else:
         return
 
-    res_items = sel.get("結果", [])
-    all_items = [it for its in sel.values() for it in its]
-    n_res_num = sum(1 for it in res_items if has_num(it.get("short", "")) or has_num(it.get("original", "")))
-    n_all_num = sum(1 for it in all_items if has_num(it.get("original", "")))
-    score_num = min(100, int(n_res_num / max(1, len(res_items)) * 70 + n_all_num / max(1, total) * 30))
+    if not strats:
+        return
 
-    all_three  = issue > 0 and action > 0 and result > 0
-    cause_base = 100 if all_three else (60 if sum([issue > 0, action > 0, result > 0]) == 2 else 20)
-    issue_words = set()
-    for it in sel.get("課題", []):
-        issue_words |= set(it.get("short", "").split())
-    kw_overlap  = sum(
-        1 for it in sel.get("対応", []) + sel.get("結果", [])
-        if any(w in it.get("short", "") for w in issue_words if len(w) >= 2)
+    total = len(strats)
+
+    # [1] 数値の充実度: result_text または kpi に数字が含まれる割合
+    import re as _re
+    def _has_digit(text: str) -> bool:
+        return bool(_re.search(r'\d', text or ""))
+
+    n_num = sum(
+        1 for s in strats
+        if _has_digit(s.get("result_text","")) or s.get("kpi","定量結果なし") != "定量結果なし"
     )
-    cause_score = min(100, cause_base + min(20, kw_overlap * 5))
+    score_num = min(100, int(n_num / total * 100))
 
-    if total > 0:
-        ratios  = [issue / total, action / total, result / total]
-        balance = max(0, 100 - int((max(ratios) - min(ratios)) * 200))
-    else:
-        balance = 0
+    # [2] 内容の網羅性: date / action_text / result_text が3つとも入っている割合
+    def _coverage(s) -> int:
+        pts = 0
+        if s.get("date","不明") not in ("不明", ""):    pts += 34
+        if s.get("action_text","").strip():             pts += 33
+        if s.get("result_text","").strip():             pts += 33
+        return pts
+    score_coverage = min(100, int(sum(_coverage(s) for s in strats) / total))
 
-    overall = int((score_num + cause_score + balance) / 3)
+    # [3] 共有トピックの質: share_text が記入されており十分な長さ（20字以上）
+    n_share = sum(1 for s in strats if len(s.get("share_text","").strip()) >= 20)
+    score_share = min(100, int(n_share / total * 100))
 
-    def _cls(v: int) -> str:
-        return "sf-g" if v >= 70 else ("sf-a" if v >= 40 else "sf-r")
-    def _pcls(v: int) -> str:
-        return "sp-g" if v >= 70 else ("sp-a" if v >= 40 else "sp-r")
+    overall = int((score_num + score_coverage + score_share) / 3)
 
-    if overall >= 70:   vrd_cls, vrd_msg = "sv-ok",   "✅ このまま提出できます"
-    elif overall >= 45: vrd_cls, vrd_msg = "sv-warn", "⚠️ 数値か因果関係を補強してください"
-    else:               vrd_cls, vrd_msg = "sv-ng",   "❌ 内容を確認してください"
+    def _cls(v):  return "sf-g" if v >= 70 else ("sf-a" if v >= 40 else "sf-r")
+    def _pcls(v): return "sp-g" if v >= 70 else ("sp-a" if v >= 40 else "sp-r")
 
-    axes = [("数値の充実度", score_num), ("因果の完全性", cause_score), ("バランス", balance)]
+    if overall >= 75:   vrd_cls, vrd_msg = "sv-ok",   "✅ 情報が充実しています。このまま生成できます"
+    elif overall >= 45: vrd_cls, vrd_msg = "sv-warn", "⚠️ 結果の数値か共有トピックを追記すると品質が上がります"
+    else:               vrd_cls, vrd_msg = "sv-ng",   "❌ 施策内容・結果が不足しています。編集して補充してください"
+
+    axes = [
+        ("数値の充実度",     score_num),
+        ("内容の網羅性",     score_coverage),
+        ("共有トピックの質", score_share),
+    ]
     axes_html = "".join(
-        f'<div class="score-axis">'
-        f'<span class="score-lbl">{lbl}</span>'
-        f'<div class="score-bg"><div class="score-fill {_cls(v)}" style="width:{v}%;"></div></div>'
-        f'<span class="score-pct {_pcls(v)}">{v}%</span>'
-        f'</div>'
+        '<div class="score-axis">'
+        '<span class="score-lbl">{lbl}</span>'
+        '<div class="score-bg"><div class="score-fill {cls}" style="width:{v}%;"></div></div>'
+        '<span class="score-pct {pcls}">{v}%</span>'
+        '</div>'.format(lbl=lbl, v=v, cls=_cls(v), pcls=_pcls(v))
         for lbl, v in axes
     )
     st.markdown(
-        f'<div class="score-wrap">'
-        f'<div class="score-ttl">📋 報告品質スコア</div>'
-        f'{axes_html}'
-        f'<div class="score-verdict {vrd_cls}">{vrd_msg}</div>'
-        f'</div>',
+        '<div class="score-wrap">'
+        '<div class="score-ttl">📋 報告品質スコア — 施策 {n} 件</div>'.format(n=total) +
+        axes_html +
+        '<div class="score-verdict {cls}">{msg}</div>'.format(cls=vrd_cls, msg=vrd_msg) +
+        '</div>',
         unsafe_allow_html=True,
     )
 
+def render_slide_preview(
+    sel: dict | None = None,
+    editable_strategies: list | None = None,
+) -> None:
+    """
+    スライドプレビュー v19 — editable_strategies対応版。
+    確認画面で編集済みの内容をそのまま反映してプレビュー表示する。
+    """
+    # ── データ準備 ────────────────────────────────────────
+    if editable_strategies is not None:
+        strats_raw = editable_strategies
+        # editable形式 → 表示用に変換
+        def _lines(text): return [l.strip().lstrip("・").strip() for l in (text or "").splitlines() if l.strip()]
+        strategies = [
+            {
+                "date":         s.get("date","不明"),
+                "title":        s.get("title",""),
+                "action_lines": _lines(s.get("action_text","")),
+                "result_lines": _lines(s.get("result_text","")),
+                "share_topic":  s.get("share_text",""),
+                "eval":         s.get("eval","不明"),
+            }
+            for s in strats_raw
+        ]
+    elif sel is not None:
+        strategies = _analyze_items(sel)
+    else:
+        return
 
-def render_slide_preview(sel: dict) -> None:
-    """スライドのライトモードプレビュー。"""
-    cls_map = {"課題": "i", "対応": "a", "結果": "r"}
-    secs = ""
-    for cat in CATS:
-        items = sel.get(cat, []); cd = CAT[cat]; cl = cls_map[cat]
-        rows  = "".join(f'<div class="sp-it">・{it["short"]}</div>' for it in items[:5])
-        rows  = rows or '<div class="sp-em">（未入力）</div>'
-        if len(items) > 5:
-            rows += f'<div class="sp-em">… 他 {len(items)-5} 件</div>'
-        secs += (
-            f'<div class="sp-sec">'
-            f'<div class="sp-sn {cl}">{cd.icon} {cat}</div>'
-            f'{rows}</div>'
+    if not strategies:
+        st.markdown(
+            '<div class="sp"><div class="sp-top">'
+            '<span class="sp-ttl">📄 月次報告レポート</span>'
+            '<span class="sp-date">完成イメージ</span></div>'
+            '<div class="sp-body"><div class="sp-em">（項目なし）</div></div></div>',
+            unsafe_allow_html=True,
         )
-    total = sum(len(v) for v in sel.values())
+        return
+
+    # 最初の1施策をプレビュー表示
+    s = strategies[0]
+    act_rows = "".join(
+        '<div class="sp-it">・{}</div>'.format(t)
+        for t in s.get("action_lines",[])[:3]
+    )
+    res_rows = "".join(
+        '<div class="sp-it">・{}</div>'.format(t)
+        for t in s.get("result_lines",[])[:2]
+    )
+    share_txt = s.get("share_topic","") or s.get("share_text","")
+    know_row  = '<div class="sp-it" style="font-size:10px;color:#c4b5fd;">{}</div>'.format(
+        share_txt[:80] + ("…" if len(share_txt) > 80 else "")
+    )
+    more = ""
+    if len(strategies) > 1:
+        more = '<div class="sp-em">… 他 {} 件の施策スライド</div>'.format(len(strategies)-1)
+
+    n_s  = sum(1 for st_ in strategies if st_.get("eval") == "成功")
+    n_ng = sum(1 for st_ in strategies if st_.get("eval") == "失敗")
+    n_total = len(strategies)
+
     st.markdown(
-        f'<div class="sp">'
-        f'<div class="sp-top"><span class="sp-ttl">📄 月次報告レポート</span>'
-        f'<span class="sp-date">完成イメージ</span></div>'
-        f'<div class="sp-body">{secs}</div>'
-        f'<div class="sp-ft">'
-        f'<span>課題 {len(sel.get("課題",[]))} / 対応 {len(sel.get("対応",[]))} / 結果 {len(sel.get("結果",[]))}</span>'
-        f'<span>計 {total} 件</span></div>'
-        f'</div>',
+        '<div class="sp">'
+        '<div class="sp-top">'
+        '<span class="sp-ttl">📄 月次報告レポート（1枚目プレビュー）</span>'
+        '<span class="sp-date">完成イメージ</span>'
+        '</div>'
+        '<div class="sp-body">'
+        '<div class="sp-sec"><div class="sp-sn i">🕐 いつ</div>'
+        '<div class="sp-it">{date}</div></div>'.format(date=s.get("date","不明")) +
+        '<div class="sp-sec"><div class="sp-sn a">📋 どんなことをやったか</div>'
+        + act_rows + '</div>' +
+        '<div class="sp-sec"><div class="sp-sn r">📊 結果はどうだったか</div>'
+        + res_rows + '</div>' +
+        '<div class="sp-sec"><div class="sp-sn" style="background:#3730a3;color:#c4b5fd;">💡 共有トピック</div>'
+        + know_row + '</div>' +
+        more +
+        '</div>'
+        '<div class="sp-ft">'
+        '<span>施策スライド {total}枚 / ✅{ns}件成功 / ❌{ng}件失敗</span>'
+        '</div></div>'.format(total=n_total, ns=n_s, ng=n_ng),
         unsafe_allow_html=True,
     )
-
 
 def render_confirm_screen() -> None:
     """
-    【目的】ここだけ見ればOK、の最終確認画面。
-    【表示するもの — 3セクションのみ】
-    1. KPI（数値）   : selected["結果"] から数値含むものを最大5件、編集可能
-    2. 課題（要約）  : selected["課題"] を最大3件、短文のみ
-    3. 抜け漏れ入力欄: テキスト入力1つ、生成時に結果として追加
-    【削除したもの】
-    ・スライドプレビュー全体
-    ・品質スコアパネル
-    ・全抽出データ一覧 / 詳細テキスト / ファイル情報
+    確認画面 v19 — 施策インライン編集 + 4ブロック構成
+
+    最大の改善:
+      ・施策カードの「いつ」「どんなことをやったか」「結果」「共有トピック」を
+        確認画面で直接テキスト編集できる
+      ・編集した内容がそのままスライドに反映される
+      ・施策が多い場合はexpanderで折りたたみ表示
+      ・追加テキスト欄で手動で施策を1件追加できる
+
+    セクション構成:
+      1. 施策カード（インライン編集可・expander折りたたみ）
+      2. 追加入力欄（新規施策の手動追加）
+      3. 生成ボタン
     """
     render_header(PHASE_CONFIRM)
+    selected = st.session_state.get("selected", {c: [] for c in CATS})
 
-    selected: dict = st.session_state.get("selected", {c: [] for c in CATS})
-
-    # ── 生成前の確認画面 ──────────────────────────────────────────────
+    # ── 生成前 ──────────────────────────────────────────────
     if not st.session_state.get("pptx_ready"):
         render_page_title(
-            "STEP 3  最終確認",
-            "3つの項目だけ確認してください",
-            "問題なければそのまま生成できます",
+            "STEP 3  最終確認 & 編集",
+            "施策内容を確認・<em>直接編集</em>してから生成してください",
+            "1施策 = 1スライドに変換されます",
         )
         st.markdown('<div class="wn">', unsafe_allow_html=True)
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # セクション 1 — KPI（数値）
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # 初回のみ _analyze_items を実行してセッションに保存
+        # 「選択内容が変わっていないか」をハッシュで検知
+        import hashlib as _hl, json as _json
+        _sel_hash = _hl.md5(
+            _json.dumps({k:[it.get("original","") for it in v]
+                         for k,v in selected.items()}, ensure_ascii=False)
+            .encode()
+        ).hexdigest()[:12]
+
+        if (st.session_state.get("_strat_hash") != _sel_hash
+                or "editable_strategies" not in st.session_state):
+            base_strats = _analyze_items(selected)
+            # セッションに保存（編集可能コピー）
+            st.session_state["editable_strategies"] = [
+                {
+                    "title":        s["title"],
+                    "date":         s["date"],
+                    "action_text":  "\n".join(s.get("action_lines", [])),
+                    "result_text":  "\n".join(s.get("result_lines", [])),
+                    "share_text":   s.get("share_topic", ""),
+                    "eval":         s.get("eval", "不明"),
+                    "eval_basis":   s.get("eval_basis", ""),
+                    "source_hint":  s.get("source_hint", "不明"),
+                    "kpi":          s.get("kpi", "定量結果なし"),
+                    "date_conf":    s.get("date_conf", "unknown"),
+                }
+                for s in base_strats
+            ]
+            st.session_state["_strat_hash"] = _sel_hash
+
+        editable = st.session_state["editable_strategies"]
+
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # セクション1: 施策インライン編集カード
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        EV_IC  = {"成功":"✅","失敗":"❌","継続中":"🔄","不明":"❓"}
+        EV_CLS = {"成功":"ok","失敗":"ng","継続中":"ing","不明":"unk"}
+
         st.markdown(
-            '<div class="sh">📊 KPI・数値実績</div>',
+            '<div class="sh">✏️ 施策カード（内容を直接編集できます）</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="conf-edit-hint">'
+            '📝 各カードの内容を編集するとスライドに反映されます。'
+            '不要な施策は「この施策を除外」で削除できます。'
+            '</div>',
             unsafe_allow_html=True,
         )
 
-        # 結果カテゴリから数値含むものを優先、なければ全件、最大5件
-        result_items = selected.get("結果", [])
-        kpi_items = [it for it in result_items if has_num(it.get("short", "")) or has_num(it.get("original", ""))]
-        if not kpi_items:
-            kpi_items = result_items  # 数値なくても全件フォールバック
-        kpi_items = kpi_items[:5]
+        # 除外フラグの初期化
+        for i in range(len(editable)):
+            if f"conf_excl_{i}" not in st.session_state:
+                st.session_state[f"conf_excl_{i}"] = False
 
-        if not kpi_items:
+        to_delete = []
+        for i, strat in enumerate(editable):
+            ev      = strat.get("eval","不明")
+            ev_ic   = EV_IC.get(ev,"❓")
+            ev_cls  = EV_CLS.get(ev,"unk")
+            is_excl = st.session_state.get(f"conf_excl_{i}", False)
+            n_total = len(editable)
+
+            # ── カードヘッダー（常に表示）──
+            title_disp = strat["title"][:60]
+            hint_s = strat.get("source_hint","不明")
+            ev_badge = '<span class="conf-ev {cls}">{ic} {ev}</span>'.format(
+                cls=ev_cls, ic=ev_ic, ev=ev)
+
             st.markdown(
-                '<div style="padding:12px;background:var(--bg2);border:1px dashed var(--b1);'
-                'border-radius:var(--r-sm);font-size:12px;color:var(--t3);">'
-                '結果カテゴリに項目がありません。下の入力欄から追加できます。</div>',
+                '<div class="conf-strat-wrap" style="{excl}">'.format(
+                    excl="opacity:.35;" if is_excl else "") +
+                '<div class="conf-strat-hdr">' +
+                '<div class="conf-strat-hdr-left">' +
+                '<div class="conf-strat-num">施策 {i} / {n}</div>'.format(i=i+1, n=n_total) +
+                '<div class="conf-strat-title">{}</div>'.format(title_disp) +
+                '<div class="conf-strat-src">📁 {}</div>'.format(hint_s) +
+                '</div>' +
+                ev_badge +
+                '</div></div>',
                 unsafe_allow_html=True,
             )
-        else:
-            for i, it in enumerate(kpi_items):
-                sk = f"confirm_kpi_{i}"
-                if sk not in st.session_state:
-                    st.session_state[sk] = it.get("short", "")
-                st.text_input(
-                    f"KPI {i + 1}",
-                    key=sk,
-                    label_visibility="collapsed",
+
+            # ── expander 内で編集フィールドを表示 ──
+            exp_label = "✏️ 編集する" if not is_excl else "⛔ 除外中"
+            with st.expander(exp_label, expanded=(n_total == 1)):
+                # 除外トグル
+                excl_col, _ = st.columns([1, 3])
+                with excl_col:
+                    if st.button(
+                        "⛔ この施策を除外" if not is_excl else "✅ 除外を解除",
+                        key=f"conf_excl_btn_{i}",
+                    ):
+                        st.session_state[f"conf_excl_{i}"] = not is_excl
+                        st.rerun()
+
+                if is_excl:
+                    st.markdown(
+                        '<div style="font-size:12px;color:#888;padding:8px 0;">'
+                        'この施策はスライドから除外されます。</div>',
+                        unsafe_allow_html=True)
+                    continue
+
+                # タイトル編集
+                st.markdown('<div class="conf-field-lbl ac">📌 施策タイトル</div>',
+                            unsafe_allow_html=True)
+                new_title = st.text_input(
+                    "施策タイトル", value=strat["title"],
+                    key=f"conf_title_{i}", label_visibility="collapsed",
                 )
-            # セッションの編集値を selected に反映
-            for i, it in enumerate(kpi_items):
-                sk = f"confirm_kpi_{i}"
-                it["short"] = st.session_state.get(sk, it.get("short", ""))
+                editable[i]["title"] = new_title
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # セクション 2 — 課題（要約）
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        st.markdown(
-            '<div class="sh" style="margin-top:20px;">⚠️ 課題（最大3件）</div>',
-            unsafe_allow_html=True,
-        )
+                c_l, c_r = st.columns([1, 1])
+                with c_l:
+                    # いつ
+                    st.markdown('<div class="conf-field-lbl dt">🕐 いつ（実施時期）</div>',
+                                unsafe_allow_html=True)
+                    date_hint = ""
+                    if strat.get("date_conf") == "inferred":
+                        date_hint = "　※推測値"
+                    elif strat.get("date_conf") == "unknown":
+                        date_hint = "　※未検出"
+                    st.caption(date_hint) if date_hint else None
+                    new_date = st.text_input(
+                        "いつ", value=strat["date"],
+                        key=f"conf_date_{i}", label_visibility="collapsed",
+                        placeholder="例: 2024年3月、今月、先週",
+                    )
+                    editable[i]["date"] = new_date
 
-        issue_items = selected.get("課題", [])[:3]
+                with c_r:
+                    # 評価（セレクトボックス）
+                    st.markdown('<div class="conf-field-lbl rs">📊 評価</div>',
+                                unsafe_allow_html=True)
+                    ev_options = ["成功","失敗","継続中","不明"]
+                    cur_ev_idx = ev_options.index(ev) if ev in ev_options else 3
+                    new_ev = st.selectbox(
+                        "評価", ev_options, index=cur_ev_idx,
+                        key=f"conf_ev_{i}", label_visibility="collapsed",
+                    )
+                    editable[i]["eval"] = new_ev
 
-        if not issue_items:
-            st.markdown(
-                '<div style="padding:12px;background:var(--bg2);border:1px dashed var(--b1);'
-                'border-radius:var(--r-sm);font-size:12px;color:var(--t3);">'
-                '課題カテゴリに項目がありません。</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            for it in issue_items:
+                # どんなことをやったか
+                st.markdown('<div class="conf-field-lbl ac">📋 どんなことをやったか</div>',
+                            unsafe_allow_html=True)
+                st.caption("1行1項目で入力してください")
+                new_action = st.text_area(
+                    "どんなことをやったか",
+                    value=strat["action_text"],
+                    key=f"conf_action_{i}",
+                    height=100,
+                    label_visibility="collapsed",
+                    placeholder="例:\n対応フローを見直し\nエスカレーション基準を明確化",
+                )
+                editable[i]["action_text"] = new_action
+
+                # 結果
+                st.markdown('<div class="conf-field-lbl rs">📊 結果はどうだったか</div>',
+                            unsafe_allow_html=True)
+                st.caption("数値・達成内容を1行1項目で入力してください")
+                new_result = st.text_area(
+                    "結果",
+                    value=strat["result_text"],
+                    key=f"conf_result_{i}",
+                    height=80,
+                    label_visibility="collapsed",
+                    placeholder="例:\n顧客満足度 +12%\nクレーム件数 0件",
+                )
+                editable[i]["result_text"] = new_result
+
+                # 社内共有トピック
                 st.markdown(
-                    f'<div style="background:var(--card);border:1px solid var(--b0);'
-                    f'border-left:3px solid var(--red-l);border-radius:var(--r-sm);'
-                    f'padding:10px 13px;margin-bottom:6px;font-size:13px;color:var(--t1);'
-                    f'line-height:1.5;">{it.get("short", "")}</div>',
+                    '<div class="conf-share-wrap">' +
+                    '<div class="conf-field-lbl sh">💡 社内共有トピック</div>',
                     unsafe_allow_html=True,
                 )
+                st.caption("同種の課題が起きたときに役立つ知見を記録します")
+                new_share = st.text_area(
+                    "共有トピック",
+                    value=strat["share_text"],
+                    key=f"conf_share_{i}",
+                    height=80,
+                    label_visibility="collapsed",
+                    placeholder="例: 同手順で再現可能。ポイントは○○と□□の順番を守ること。",
+                )
+                editable[i]["share_text"] = new_share
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # セクション 3 — 抜け漏れ入力欄
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # セクション2: 施策を手動追加
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         st.markdown(
-            '<div class="sh" style="margin-top:20px;">✏️ 抜け漏れがあれば追加</div>',
+            '<div class="sh" style="margin-top:22px;">➕ 施策を手動追加</div>',
             unsafe_allow_html=True,
         )
-        extra = st.text_input(
-            "追加情報",
-            key="confirm_extra",
-            label_visibility="collapsed",
-            placeholder="例：売上前月比 120%　／　クレーム件数 0件",
+        st.markdown(
+            '<div style="font-size:11px;color:var(--t2);margin-bottom:8px;">'
+            'ファイルに記載されていなかった施策を追加できます。'
+            '</div>',
+            unsafe_allow_html=True,
         )
+        with st.expander("＋ 新しい施策を追加する"):
+            ca1, ca2 = st.columns([2, 1])
+            with ca1:
+                add_title = st.text_input("施策タイトル", key="conf_add_title",
+                                          placeholder="例: 営業フロー改善")
+            with ca2:
+                add_date = st.text_input("いつ", key="conf_add_date",
+                                         placeholder="例: 今月")
+            add_action = st.text_area("どんなことをやったか", key="conf_add_action",
+                                      height=72,
+                                      placeholder="例:\n週次MTGで課題を共有\n対応マニュアルを作成")
+            add_result = st.text_input("結果", key="conf_add_result",
+                                       placeholder="例: 対応時間 30%削減")
+            add_share = st.text_input("社内共有トピック", key="conf_add_share",
+                                      placeholder="例: マニュアル化で属人化を解消できた")
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            if st.button("✅ この施策を追加する", key="conf_add_btn"):
+                if add_title.strip() or add_action.strip():
+                    st.session_state["editable_strategies"].append({
+                        "title":       add_title.strip() or add_action.strip()[:40],
+                        "date":        add_date.strip() or "不明",
+                        "action_text": add_action.strip(),
+                        "result_text": add_result.strip(),
+                        "share_text":  add_share.strip(),
+                        "eval":        "不明",
+                        "eval_basis":  "手動入力",
+                        "source_hint": "手動入力",
+                        "kpi":         add_result.strip() or "定量結果なし",
+                        "date_conf":   "unknown",
+                    })
+                    for k in ["conf_add_title","conf_add_date","conf_add_action",
+                              "conf_add_result","conf_add_share"]:
+                        st.session_state.pop(k, None)
+                    st.rerun()
+                else:
+                    st.warning("タイトルか施策内容を入力してください")
+
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # 生成ボタン
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         st.markdown('<hr>', unsafe_allow_html=True)
 
-        total = sum(len(v) for v in selected.values())
-        if total == 0 and not extra.strip():
-            st.warning("⚠️ 採用された項目が0件です。一覧に戻って確認してください。")
+        # 有効施策数（除外フラグを考慮）
+        active_strats = [
+            s for i, s in enumerate(editable)
+            if not st.session_state.get(f"conf_excl_{i}", False)
+        ]
+        n_active = len(active_strats)
+
+        if n_active == 0:
+            st.warning("⚠️ 全施策が除外されています。1件以上の施策を有効にしてください。")
         else:
-            # 抜け漏れ入力があれば selected["結果"] に追加してから生成
-            def _build_final(sel: dict, extra_text: str) -> dict:
-                import copy
-                final = copy.deepcopy(sel)
-                if extra_text.strip():
-                    final.setdefault("結果", []).append({
-                        "original": extra_text.strip(),
-                        "short":    extra_text.strip(),
-                        "source":   "手動入力（確認画面）",
-                        "category": "結果",
-                        "score":    20,
-                        "confidence": 1.0,
-                    })
-                return final
+            # ── 品質スコア（編集済み内容を反映）──
+            st.markdown(
+                '<div class="sh" style="margin-top:4px;">📊 報告品質チェック</div>',
+                unsafe_allow_html=True,
+            )
+            render_completeness_score(editable_strategies=active_strats)
+
+            st.markdown('<hr style="margin-top:18px;">', unsafe_allow_html=True)
+            total_items = sum(len(v) for v in selected.values())
+            st.markdown(
+                '<div style="font-size:11px;color:var(--t2);text-align:center;'
+                'margin-bottom:12px;">'
+                '有効施策 <strong style="color:#fff;">{n}</strong> 件 → {n} スライドを生成します'
+                '</div>'.format(n=n_active),
+                unsafe_allow_html=True,
+            )
 
             c1, c2, c3 = st.columns([1, 2, 1])
             with c2:
@@ -2035,32 +3093,39 @@ def render_confirm_screen() -> None:
                     if not PPTX_OK:
                         st.error("❌ python-pptx が必要: pip install python-pptx")
                     else:
-                        final_sel = _build_final(selected, extra)
+                        # 編集済み施策を sel に戻す（build_pptx は sel を使うが、
+                        # _analyze_items を overrides する形で渡す）
+                        # editable_strategies を session に保存して build_pptx が参照できるようにする
+                        st.session_state["final_strategies"] = active_strats
                         pr = st.progress(0); pr.progress(30)
                         today = datetime.now().strftime("%Y年%m月%d日 %H:%M")
-                        pb    = build_pptx(final_sel, today)
+                        pb    = _build_pptx_from_strategies(active_strats, selected, today)
                         pr.progress(100); pr.empty()
                         st.session_state.update({
                             "pptx_bytes": pb,
                             "pptx_ready": True,
                             "show_toast": True,
-                            "last_sel":   {k: list(v) for k, v in final_sel.items()},
+                            "last_n_strats": n_active,
                         })
                         st.rerun()
 
-        # 戻るボタン（小さく）
         st.markdown('<div style="margin-top:12px;"></div>', unsafe_allow_html=True)
         c1, c2, c3 = st.columns([2, 1, 2])
         with c2:
             if st.button("← 一覧に戻る", use_container_width=True):
-                st.session_state.pop("pptx_ready", None)
-                st.session_state.pop("pptx_bytes", None)
+                for k in ["pptx_ready","pptx_bytes","editable_strategies","_strat_hash",
+                          "final_strategies"]:
+                    st.session_state.pop(k, None)
+                # 除外フラグをクリア
+                for k in list(st.session_state.keys()):
+                    if k.startswith("conf_excl_"):
+                        del st.session_state[k]
                 st.session_state["ui_phase"] = PHASE_REVIEW
                 st.rerun()
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── 生成完了画面 ─────────────────────────────────────────────────
+    # ── 生成完了 ──────────────────────────────────────────────
     if st.session_state.get("pptx_ready"):
         render_page_title(
             "STEP 3  生成完了",
@@ -2070,44 +3135,89 @@ def render_confirm_screen() -> None:
         if st.session_state.pop("show_toast", False):
             st.toast("✅ スライドの生成が完了しました", icon="✅")
 
-        _s = st.session_state.get("last_sel", {})
-        total_dl = sum(len(v) for v in _s.values()) if _s else 0
+        n_strats = st.session_state.get("last_n_strats", 0)
 
         st.markdown('<div class="wn">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="dl-card" id="dla">'
-            '<div class="dl-ttl">✅ 生成が完了しました</div>'
-            f'<div class="dl-sub">計 {total_dl} 件を整理しました。</div>'
+            '<div class="dl-card" id="dla">' +
+            '<div class="dl-ttl">✅ スライドの生成が完了しました</div>' +
+            '<div class="dl-sub">施策スライド {n} 枚 + 補足資料を出力しました。</div>'.format(n=n_strats) +
             '</div>',
             unsafe_allow_html=True,
         )
-
         st.markdown('<div class="pulse">', unsafe_allow_html=True)
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
             st.download_button(
                 label="⬇　IIJ月次報告レポートをダウンロード",
                 data=st.session_state["pptx_bytes"],
-                file_name=f"IIJ_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.pptx",
+                file_name="IIJ_Report_{}.pptx".format(
+                    datetime.now().strftime("%Y%m%d_%H%M")),
                 mime=(
                     "application/vnd.openxmlformats-officedocument"
                     ".presentationml.presentation"
                 ),
                 use_container_width=True,
             )
-        st.markdown('</div>', unsafe_allow_html=True)  # pulse
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── 生成内容のサマリープレビュー ──
+        final_strats = st.session_state.get("final_strategies")
+        if final_strats:
+            st.markdown(
+                '<div class="sh" style="margin-top:20px;">📋 生成内容サマリー</div>',
+                unsafe_allow_html=True,
+            )
+            render_slide_preview(editable_strategies=final_strats)
+
+            # 施策一覧テーブル（コンパクト）
+            EV_IC = {"成功":"✅","失敗":"❌","継続中":"🔄","不明":"❓"}
+            rows_html = "".join(
+                '<tr>'
+                '<td style="padding:5px 10px;font-size:11px;color:#e2e8f0;border-bottom:1px solid rgba(255,255,255,.06);">{i}</td>'
+                '<td style="padding:5px 10px;font-size:11px;color:#e2e8f0;border-bottom:1px solid rgba(255,255,255,.06);">{title}</td>'
+                '<td style="padding:5px 10px;font-size:10px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,.06);">{date}</td>'
+                '<td style="padding:5px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.06);">{ev}</td>'
+                '</tr>'.format(
+                    i=i+1,
+                    title=s.get("title","")[:36] + ("…" if len(s.get("title",""))>36 else ""),
+                    date=s.get("date","不明"),
+                    ev=EV_IC.get(s.get("eval","不明"),"❓") + " " + s.get("eval","不明"),
+                )
+                for i, s in enumerate(final_strats)
+            )
+            st.markdown(
+                '<div style="background:var(--card);border:1px solid var(--b1);'
+                'border-radius:var(--r-sm);overflow:hidden;margin-top:8px;">'
+                '<table style="width:100%;border-collapse:collapse;">'
+                '<thead><tr>'
+                '<th style="padding:6px 10px;font-size:9px;color:var(--t3);text-align:left;'
+                'letter-spacing:.1em;border-bottom:1px solid var(--b1);">#</th>'
+                '<th style="padding:6px 10px;font-size:9px;color:var(--t3);text-align:left;'
+                'letter-spacing:.1em;border-bottom:1px solid var(--b1);">施策タイトル</th>'
+                '<th style="padding:6px 10px;font-size:9px;color:var(--t3);text-align:left;'
+                'letter-spacing:.1em;border-bottom:1px solid var(--b1);">いつ</th>'
+                '<th style="padding:6px 10px;font-size:9px;color:var(--t3);text-align:left;'
+                'letter-spacing:.1em;border-bottom:1px solid var(--b1);">評価</th>'
+                '</tr></thead>'
+                '<tbody>' + rows_html + '</tbody>'
+                '</table></div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown('<div style="margin-top:14px;"></div>', unsafe_allow_html=True)
         c1, c2, c3 = st.columns([2, 1, 2])
         with c2:
             if st.button("🔄 内容を修正する", use_container_width=True):
-                st.session_state.pop("pptx_ready", None)
-                st.session_state.pop("pptx_bytes", None)
+                for k in ["pptx_ready","pptx_bytes","editable_strategies","_strat_hash",
+                          "final_strategies"]:
+                    st.session_state.pop(k, None)
+                for k in list(st.session_state.keys()):
+                    if k.startswith("conf_excl_"):
+                        del st.session_state[k]
                 st.session_state["ui_phase"] = PHASE_REVIEW
                 st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)  # wn
-
+        st.markdown('</div>', unsafe_allow_html=True)
         components.html(
             """<script>
             (function(){
@@ -2124,14 +3234,6 @@ def render_confirm_screen() -> None:
 
     render_footer()
 
-
-# ==============================================================================
-# LAYER 9 ─ メインアプリ (v14 4画面ルーター)
-#
-# セッション状態 ui_phase の値で画面をルーティングする。
-# ロジック・データ処理はLAYER 0〜7が担う。
-# この関数はルーターとしての役割のみ持つ。
-# ==============================================================================
 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
@@ -2160,3 +3262,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ==============================================================================
